@@ -37,11 +37,11 @@ const sidebarItems = [
   },
 ]
 
-export function Sidebar() {
+export function Sidebar({ className }: { className?: string }) {
   const location = useLocation()
 
   return (
-    <div className="flex flex-col h-full border-r border-border/50 bg-card/50 backdrop-blur-xl w-64">
+    <div className={cn("flex flex-col h-full border-r border-border/50 bg-card/50 backdrop-blur-xl w-64", className)}>
       <div className="p-6 border-b border-border/50">
         <h1 className="text-xl font-bold font-sans tracking-tight text-primary flex items-center gap-2">
           <span className="text-2xl">&lt;/&gt;</span>

@@ -6,12 +6,16 @@ import { Textarea } from "@/components/ui/textarea"
 import { ArrowLeft, Save } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { Link } from "react-router-dom"
+import { MOCK_QUESTIONS, QuestionTable } from "@/components/domain/questions/question-table"
+import { useState } from "react"
+import { cn } from "@/lib/utils"
 
 export function CreateContest() {
   const navigate = useNavigate()
+  const [selectedQuestions, setSelectedQuestions] = useState<string[]>([])
 
   return (
-    <div className="space-y-6 max-w-2xl mx-auto">
+    <div className="space-y-6 max-w-4xl mx-auto">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => navigate("/contests")}>
           <ArrowLeft className="h-4 w-4" />
@@ -46,7 +50,7 @@ export function CreateContest() {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Start Time</Label>
               <Input type="datetime-local" className="font-mono" />
@@ -58,15 +62,24 @@ export function CreateContest() {
           </div>
 
           <div className="pt-4 border-t border-border/50">
-            <h3 className="text-lg font-medium mb-4">Questions</h3>
-            <div className="flex flex-col gap-4 items-center justify-center p-8 border-2 border-dashed border-muted rounded-lg bg-muted/20">
-              <p className="text-muted-foreground text-sm text-center">
-                This contest has no questions yet.
-              </p>
-              <Button variant="secondary" onClick={() => navigate("/questions/new")}>
-                Add Questions
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium">Questions</h3>
+              <Button variant="outline" size="sm" onClick={() => navigate("/questions/new")}>
+                Create New Question
               </Button>
             </div>
+            
+            <QuestionTable 
+               questions={MOCK_QUESTIONS}
+               isSelectable
+               selectedIds={selectedQuestions}
+               onSelectionChange={setSelectedQuestions}
+            />
+            {selectedQuestions.length > 0 && (
+                <p className="mt-2 text-sm text-muted-foreground text-right">
+                    {selectedQuestions.length} question(s) selected
+                </p>
+            )}
           </div>
           
           <div className="flex justify-end gap-3 pt-4">
@@ -75,7 +88,7 @@ export function CreateContest() {
              </Link>
             <Button className="gap-2">
               <Save className="h-4 w-4" />
-              Save Draft
+              Save Contest
             </Button>
           </div>
         </CardContent>

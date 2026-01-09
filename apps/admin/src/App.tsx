@@ -7,6 +7,8 @@ import { ContestsList } from './pages/contests/list'
 import { CreateContest } from './pages/contests/create'
 import { CreateQuestion } from './pages/questions/create'
 
+import { QuestionsList } from './pages/questions/list'
+
 function App() {
   return (
     <BrowserRouter>
@@ -20,9 +22,8 @@ function App() {
           <Route path="dashboard" element={<DashboardHome />} />
           <Route path="contests" element={<ContestsList />} />
           <Route path="contests/new" element={<CreateContest />} />
+          <Route path="questions" element={<QuestionsList />} />
           <Route path="questions/new" element={<CreateQuestion />} />
-           {/* Fallback for Question Bank to avoid 404 from Sidebar links */}
-           <Route path="questions" element={<Navigate to="/questions/new" replace />} />
         </Route>
       </Routes>
     </BrowserRouter>

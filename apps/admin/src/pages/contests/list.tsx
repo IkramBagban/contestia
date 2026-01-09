@@ -49,23 +49,25 @@ export function ContestsList() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Contests</h2>
           <p className="text-muted-foreground">Manage your coding battles.</p>
         </div>
-        <Button onClick={() => navigate("/contests/new")} className="gap-2">
+        <Button onClick={() => navigate("/contests/new")} className="gap-2 w-full sm:w-auto">
           <Plus className="h-4 w-4" />
           Create New
         </Button>
       </div>
 
       <Tabs defaultValue="active" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="active">Active</TabsTrigger>
-          <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
-          <TabsTrigger value="past">Past</TabsTrigger>
-        </TabsList>
+        <div className="w-full overflow-x-auto pb-2">
+            <TabsList>
+            <TabsTrigger value="active">Active</TabsTrigger>
+            <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
+            <TabsTrigger value="past">Past</TabsTrigger>
+            </TabsList>
+        </div>
         
         <TabsContent value="active" className="space-y-4">
           <ContestTable contests={activeContests} showEdit />
