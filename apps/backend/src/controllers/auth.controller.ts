@@ -104,7 +104,7 @@ export const login = async (
     };
     const token = jwt.sign(jwtPayload, process.env.JWT_SECRET ?? "secret");
 
-    req.cookies("token", token);
+    res.cookie("token", token);
     res
       .status(200)
       .json({ success: true, message: "You are logged in successfully." });

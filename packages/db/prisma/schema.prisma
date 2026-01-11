@@ -18,6 +18,73 @@ model User {
   email    String @unique
   password String
 
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  contests  Contest[]
+  questions Question[]
+
+  @@index([email])
+}
+
+// one contets can have multiple questions, one question can be in multiple contests
+model Contest {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  startDate   DateTime
+  startTime   String
+  endTime     String
+  userId      String
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  questions QuestionsInContests[]
+  user      User                  @relation(fields: [userId], references: [id])
+}
+
+enum QuestionType {
+  MCQ
+  DSA
+}
+
+model Question {
+  id   String       @id @default(uuid())
+  text String
+  type QuestionType
+
+  points Int
+  userId String
+
+  options Option[] // in case of mcq
+  // testCases in case of dsa
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  contests QuestionsInContests[]
+  user     User                  @relation(fields: [userId], references: [id])
+}
+
+model QuestionsInContests {
+  contestId  String
+  questionId String
+
+  assignedAt DateTime @default(now())
+
+  contest  Contest  @relation(fields: [contestId], references: [id])
+  question Question @relation(fields: [questionId], references: [id])
+
+  @@id([contestId, questionId])
+}
+
+model Option {
+  id         String  @id @default(uuid())
+  questionId String
+  text       String
+  isCorrect  Boolean
+
+  question Question @relation(fields: [questionId], references: [id])
+
+  createdAt DateTime @default(now())
 }
