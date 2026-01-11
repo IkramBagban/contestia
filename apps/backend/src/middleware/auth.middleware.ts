@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import jwt from "jsonwebtoken";
+import jwt, { type JwtPayload } from "jsonwebtoken";
 
 export const auth = (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -12,7 +12,16 @@ export const auth = (req: Request, res: Response, next: NextFunction) => {
       throw error;
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET ?? "secret");
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET ?? "secret"
+    ) as JwtPayload;
+
+    if (!decoded || !decoded.id) {
+      const err = new Error("Invalid token payload");
+      (err as any).status = 401;
+      throw err;
+    }
 
     // @ts-ignore
     req.user = decoded;

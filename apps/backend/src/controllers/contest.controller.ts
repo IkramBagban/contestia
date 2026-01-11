@@ -10,9 +10,12 @@ export const getContests = async (
 ) => {
   try {
     const { page = 1, limit = 10 } = req.query;
+    const p = Math.max(Number(page) || 1, 1);
+    const l = Math.min(Number(limit) || 10, 100);
+
     const contests = await prismaClient.contest.findMany({
-      take: Number(limit),
-      skip: Number(page) + Number(limit),
+      skip: (p - 1) * l,
+      take: l,
       select: {
         title: true,
         description: true,
@@ -44,16 +47,20 @@ export const createContest = async (
         "Validation Error: " + JSON.stringify(schemaResult.error.flatten())
       );
       // @ts-ignore
-      error.status = 404;
+      error.status = 400;
       throw error;
     }
 
     const { questionIds, ...contestData } = schemaResult.data;
 
+    if (!questionIds.length) {
+      throw Object.assign(new Error("Questions required"), { status: 400 });
+    }
+
     const contest = await prismaClient.contest.create({
       data: {
         ...contestData,
-        userId: req.user.id,
+        userId: req.user!.id,
         questions: {
           create: questionIds.map((id) => ({
             question: {
