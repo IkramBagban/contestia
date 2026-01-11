@@ -6,16 +6,18 @@ import express, {
 import cors from "cors";
 import authRouter from "./routes/auth.route";
 import contestRouter from "./routes/contest.route";
-import cookieParser from "cookie-parser"
+import questionRouter from "./routes/question.route";
+import cookieParser from "cookie-parser";
 const PORT = process.env.PORT || 3000;
 const app = express();
 
 app.use(express.json());
 app.use(cors());
-app.  use(cookieParser())
+app.use(cookieParser());
 
 app.use("/auth", authRouter);
-app.use("/contests", authRouter);
+app.use("/contests", contestRouter);
+app.use("/questions", questionRouter);
 
 app.get("/", (req, res) => {
   res.send("backend is working");

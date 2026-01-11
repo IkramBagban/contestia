@@ -18,3 +18,36 @@ export const createContestSchema = z.object({
   endTime: z.string(),
   questionIds: z.array(z.string()),
 });
+
+export const optionSchema = z.object({
+  questionId: z.string(),
+  text: z.string(),
+  isCorrect: z.boolean(),
+});
+
+export const createQuestionSchema = z
+  .object({
+    text: z.string(),
+    type: z.enum(["MCQ", "DSA"]),
+    points: z.number(),
+
+    options: z.array(optionSchema).optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.type === "MCQ") {
+      if (!data.options || data.options.length < 1) {
+        ctx.addIssue({
+          path: ["options"],
+          message: "Options are required for MCQ questions",
+          code: "custom",
+        });
+      }
+    }
+  });
+
+export const questionQuerySchema = z.object({
+  page: z.string().optional(),
+  limit: z.string().optional(),
+  contestId: z.string().optional(),
+  type: z.enum(["MCQ", "DSA"]).optional(),
+});
