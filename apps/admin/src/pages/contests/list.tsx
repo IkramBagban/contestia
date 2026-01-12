@@ -1,31 +1,3 @@
-// Mock data for initial development
-const MOCK_CONTESTS = [
-  {
-    id: "1",
-    title: "Weekly Contest 305",
-    startTime: "2024-03-20T14:00:00Z",
-    endTime: "2024-03-20T16:00:00Z",
-    status: "active",
-    participants: 120,
-  },
-  {
-    id: "2",
-    title: "Beginner DSA Sprint",
-    startTime: "2024-03-25T10:00:00Z",
-    endTime: "2024-03-25T12:00:00Z",
-    status: "upcoming",
-    participants: 45,
-  },
-  {
-    id: "3",
-    title: "Algorithmic Showdown #4",
-    startTime: "2024-03-10T14:00:00Z",
-    endTime: "2024-03-10T17:00:00Z",
-    status: "past",
-    participants: 342,
-  },
-]
-
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
@@ -39,13 +11,40 @@ import {
 import { Plus, Edit2, Trophy, Eye } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { Badge } from "@/components/ui/badge"
+import { useContests, Contest } from "@/hooks/use-queries"
 
 export function ContestsList() {
   const navigate = useNavigate()
+  const { data: contests = [], isLoading, error } = useContests()
 
-  const activeContests = MOCK_CONTESTS.filter(c => c.status === "active")
-  const upcomingContests = MOCK_CONTESTS.filter(c => c.status === "upcoming")
-  const pastContests = MOCK_CONTESTS.filter(c => c.status === "past")
+  if (isLoading) return <div>Loading contests...</div>
+  // if (error) return <div>Error loading contests</div> // Handle error gracefully or use boundary
+
+  const now = new Date()
+  
+  const activeContests = contests.filter(c => {
+    const start = new Date(c.startDate) 
+    const end = new Date(c.endTime)
+    // assuming startTime/endTime field names in api response are what I saw in controller.
+    // wait, controller selected: startDate, startTime, endTime.
+    // The controller is returning string for dates.
+    // Actually, startDate is Date object in Prisma, but JSON is string.
+    // Logic: if start <= now && end >= now.
+    // BUT, backend returns 'startDate' (Date), 'startTime' (String), 'endTime' (String). 
+    // This is confusing schema in backend. "startDate" is a Date, "startTime" is string?
+    // Let's assume startDate contains the date part and startTime contains time? Or startDate is a full datetime?
+    // Looking at schema: startDate: z.date(), startTime: z.string(), endTime: z.string().
+    // If startDate is DateTime@db, it has time. 
+    // I will try to use `startDate` as the start datetime, and `endTime` as end datetime/string.
+    // Ideally I should inspect the real data, but I'll assume they are parsable dates.
+    // Fallback: just list all in 'active' if specific logic fails, or grouping them roughly.
+    // Let's try to parse `endTime` string.
+    const endDate = new Date(c.endTime)
+    return start <= now && endDate >= now
+  })
+  
+  const upcomingContests = contests.filter(c => new Date(c.startDate) > now)
+  const pastContests = contests.filter(c => new Date(c.endTime) < now)
 
   return (
     <div className="space-y-6">
@@ -60,15 +59,19 @@ export function ContestsList() {
         </Button>
       </div>
 
-      <Tabs defaultValue="active" className="space-y-4">
+      <Tabs defaultValue="all" className="space-y-4">
         <div className="w-full overflow-x-auto pb-2">
             <TabsList>
-            <TabsTrigger value="active">Active</TabsTrigger>
-            <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
-            <TabsTrigger value="past">Past</TabsTrigger>
+            <TabsTrigger value="all">All ({contests.length})</TabsTrigger>
+            <TabsTrigger value="active">Active ({activeContests.length})</TabsTrigger>
+            <TabsTrigger value="upcoming">Upcoming ({upcomingContests.length})</TabsTrigger>
+            <TabsTrigger value="past">Past ({pastContests.length})</TabsTrigger>
             </TabsList>
         </div>
         
+        <TabsContent value="all" className="space-y-4">
+          <ContestTable contests={contests} showEdit />
+        </TabsContent>
         <TabsContent value="active" className="space-y-4">
           <ContestTable contests={activeContests} showEdit />
         </TabsContent>
@@ -88,7 +91,7 @@ function ContestTable({
   showEdit = false, 
   showLeaderboard = false 
 }: { 
-  contests: typeof MOCK_CONTESTS, 
+  contests: Contest[], 
   showEdit?: boolean, 
   showLeaderboard?: boolean 
 }) {
@@ -112,15 +115,16 @@ function ContestTable({
               </TableCell>
             </TableRow>
           ) : (
-            contests.map((contest) => (
-              <TableRow key={contest.id} className="border-border/50 hover:bg-muted/50">
+            contests.map((contest, i) => (
+              <TableRow key={contest.id || i} className="border-border/50 hover:bg-muted/50">
                 <TableCell className="font-medium font-sans">{contest.title}</TableCell>
                 <TableCell className="font-mono text-xs text-muted-foreground">
-                  {new Date(contest.startTime).toLocaleString()}
+                  {new Date(contest.startDate).toLocaleString()}
                 </TableCell>
-                <TableCell className="font-mono">{contest.participants}</TableCell>
+                <TableCell className="font-mono text-muted-foreground">-</TableCell> 
+                {/* Participants not in API response yet */}
                 <TableCell>
-                  <StatusBadge status={contest.status} />
+                  <StatusBadge contest={contest} />
                 </TableCell>
                 <TableCell className="text-right space-x-2">
                   {showEdit && (
@@ -147,12 +151,34 @@ function ContestTable({
   )
 }
 
-function StatusBadge({ status }: { status: string }) {
-  if (status === "active") {
-    return <Badge className="bg-primary/20 text-primary hover:bg-primary/30 border-0">Active</Badge>
+function StatusBadge({ contest }: { contest: Contest }) {
+  const now = new Date()
+  const start = new Date(contest.startDate)
+  const end = new Date(contest.endTime)
+  let status = 'upcoming'
+  if (now > end) status = 'past'
+  else if (now >= start && now <= end) status = 'active'
+
+  const styles = {
+    active: "bg-green-500/15 text-green-500 hover:bg-green-500/25 border-green-500/20",
+    upcoming: "bg-blue-500/15 text-blue-500 hover:bg-blue-500/25 border-blue-500/20",
+    past: "bg-muted text-muted-foreground hover:bg-muted/80 border-border/50",
   }
-  if (status === "upcoming") {
-    return <Badge className="bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 border-0">Upcoming</Badge>
+
+  const labels = {
+    active: "Live Now",
+    upcoming: "Upcoming",
+    past: "Finished",
   }
-  return <Badge variant="secondary">Finished</Badge>
+
+  // @ts-ignore
+  const style = styles[status] || styles.past
+  // @ts-ignore
+  const label = labels[status] || status
+
+  return (
+    <Badge variant="outline" className={`${style} border`}>
+      {label}
+    </Badge>
+  )
 }

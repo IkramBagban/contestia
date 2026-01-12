@@ -9,15 +9,19 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
+import { useCreateQuestion } from "@/hooks/use-queries"
 
 export function CreateQuestion() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const type = searchParams.get("type") || "mcq"
+  const type = (searchParams.get("type") || "mcq") as "mcq" | "dsa" | "sandbox"
+  
+  const createQuestion = useCreateQuestion()
 
   // Simple state management for the form
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
+  const [points, setPoints] = useState(10)
   const [options, setOptions] = useState([
     { id: 'A', text: '', isCorrect: false },
     { id: 'B', text: '', isCorrect: false },
@@ -32,7 +36,6 @@ export function CreateQuestion() {
   const handleOptionChange = (index: number, field: 'text' | 'isCorrect', value: string | boolean | "indeterminate") => {
     const newOptions = [...options]
     if (field === 'isCorrect') {
-        // Just for safety with checkbox type
         newOptions[index].isCorrect = value === true 
     } else {
         newOptions[index].text = value as string
@@ -41,15 +44,27 @@ export function CreateQuestion() {
   }
 
   const handleSave = () => {
-    const questionData = {
-        type,
-        title,
-        description,
-        options: type === 'mcq' ? options : undefined
+    // Combine title and description for 'text' field
+    const text = description ? `${title}\n\n${description}` : title
+
+    const payload = {
+        type: type === 'mcq' ? 'MCQ' : 'DSA',
+        text,
+        points: Number(points),
+        options: type === 'mcq' ? options.map(o => ({
+            text: o.text,
+            isCorrect: o.isCorrect,
+        })) : undefined
     }
-    console.log("Saving Question Data:", questionData)
-    // In a real app, this would be an API call
-    navigate("/questions") 
+
+    createQuestion.mutate(payload as any, {
+        onSuccess: () => {
+             navigate("/questions")
+        },
+        onError: (error) => {
+            alert("Failed to create question: " + error.message)
+        }
+    })
   }
 
   return (
@@ -80,9 +95,9 @@ export function CreateQuestion() {
                     label="DSA / Coding" 
                     value="dsa" 
                     active={type === "dsa"} 
-                    onClick={() => {}}
-                    disabled
-                    tooltip="Coding challenges coming soon!"
+                    onClick={() => handleTypeChange("dsa")}
+                    // disabled
+                    tooltip="Select for coding challenges"
                 />
                 <TypeCard 
                     label="Custom Sandbox" 
@@ -98,71 +113,77 @@ export function CreateQuestion() {
         </Card>
 
         {/* Question Form */}
-        <Card className="border-border/50">
-          <CardHeader>
-            <CardTitle>{type.toUpperCase()} Details</CardTitle>
-            <CardDescription>Fill in the content for the question.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label>Question Title</Label>
-              <Input 
-                placeholder="e.g. Find the missing number" 
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Description (Markdown)</Label>
-              <Textarea 
-                placeholder="## Problem Statement..." 
-                className="font-mono text-sm min-h-[200px]" 
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">Supports Markdown and Notion links.</p>
-            </div>
-
-            {type === "mcq" && (
-              <div className="space-y-4 pt-4 border-t border-border/50">
-                <Label className="text-base">Options & Answer</Label>
-                <div className="grid gap-4">
-                  {options.map((opt, idx) => (
-                    <div key={opt.id} className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-input bg-background font-mono font-medium">
-                        {opt.id}
-                      </div>
-                      <Input 
-                        placeholder={`Option ${opt.id} text...`} 
-                        value={opt.text}
-                        onChange={(e) => handleOptionChange(idx, 'text', e.target.value)}
-                      />
-                      <div className="flex items-center space-x-2">
-                        <Checkbox 
-                            id={`correct-${opt.id}`} 
-                            checked={opt.isCorrect}
-                            onCheckedChange={(checked) => handleOptionChange(idx, 'isCorrect', checked)}
-                        />
-                        <label
-                          htmlFor={`correct-${opt.id}`}
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                        >
-                          Correct
-                        </label>
-                      </div>
-                    </div>
-                  ))}
+        <Card className="border-border/50 bg-card">
+            <CardHeader>
+                <CardTitle>Question Details</CardTitle>
+                <CardDescription>Define the core problem statement.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div className="space-y-2">
+                    <Label htmlFor="title">Question Title</Label>
+                    <Input 
+                        id="title" 
+                        placeholder="e.g. React Hook Rules" 
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                    />
                 </div>
-              </div>
-            )}
-            
-            <div className="flex justify-end gap-3 pt-6">
-              <Button variant="outline" onClick={() => navigate(-1)}>Cancel</Button>
-              <Button onClick={handleSave}>Save Question</Button>
-            </div>
-          </CardContent>
+                <div className="space-y-2">
+                    <Label htmlFor="points">Points</Label>
+                    <Input 
+                        id="points" 
+                        type="number" 
+                        placeholder="10" 
+                        value={points}
+                        onChange={(e) => setPoints(Number(e.target.value))}
+                    />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="description">Description (Markdown supported)</Label>
+                    <Textarea 
+                        id="description" 
+                        placeholder="Detailed question description..." 
+                        className="h-32 font-mono text-sm"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                    />
+                </div>
+            </CardContent>
         </Card>
+
+        {/* Options (MCQ Only) */}
+        {type === "mcq" && (
+            <Card className="border-border/50 bg-card">
+                <CardHeader>
+                    <CardTitle>Answer Options</CardTitle>
+                    <CardDescription>Select the correct answer(s).</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    {options.map((option, index) => (
+                        <div key={option.id} className="flex items-center gap-3">
+                           <Checkbox 
+                                checked={option.isCorrect}
+                                onCheckedChange={(checked) => handleOptionChange(index, 'isCorrect', checked)}
+                           />
+                           <div className="flex-1">
+                                <Input 
+                                    placeholder={`Option ${option.id}`} 
+                                    value={option.text}
+                                    onChange={(e) => handleOptionChange(index, 'text', e.target.value)}
+                                />
+                           </div>
+                        </div>
+                    ))}
+                </CardContent>
+            </Card>
+        )}
+
+        <div className="flex justify-end gap-3 pt-4">
+             <Button variant="outline" onClick={() => navigate(-1)}>Cancel</Button>
+            <Button className="gap-2" onClick={handleSave} disabled={createQuestion.isPending}>
+              {createQuestion.isPending ? "Saving..." : "Save Question"}
+            </Button>
+        </div>
       </div>
     </div>
   )
@@ -170,6 +191,7 @@ export function CreateQuestion() {
 
 function TypeCard({ 
     label, 
+    value, 
     active, 
     onClick, 
     disabled, 

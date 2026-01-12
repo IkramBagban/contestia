@@ -4,15 +4,59 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { ArrowLeft, Save } from "lucide-react"
-import { useNavigate } from "react-router-dom"
-import { Link } from "react-router-dom"
-import { MOCK_QUESTIONS, QuestionTable } from "@/components/domain/questions/question-table"
+import { useNavigate, Link } from "react-router-dom"
+import { QuestionTable, Question as UIQuestion } from "@/components/domain/questions/question-table"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
+import { useCreateContest, useQuestions } from "@/hooks/use-queries"
 
 export function CreateContest() {
   const navigate = useNavigate()
+  const createContest = useCreateContest()
+  const { data: questions = [], isLoading: loadingQuestions } = useQuestions()
+  
+  const [title, setTitle] = useState("")
+  const [description, setDescription] = useState("")
+  const [startDateTime, setStartDateTime] = useState("")
+  const [endDateTime, setEndDateTime] = useState("")
   const [selectedQuestions, setSelectedQuestions] = useState<string[]>([])
+
+  // Map API questions to UI questions
+  const uiQuestions: UIQuestion[] = questions.map((q, i) => ({
+    id: q.id, 
+    title: q.text?.substring(0, 50) || "Untitled",
+    type: q.type.toLowerCase() as any,
+    description: q.text,
+    points: q.points
+  }))
+
+  const handleSave = () => {
+    if (!startDateTime || !endDateTime) {
+        alert("Please set start and end times")
+        return
+    }
+
+    const start = new Date(startDateTime)
+    
+    // Extract time string HH:mm
+    const startTimeStr = start.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+
+    createContest.mutate({
+        title,
+        description,
+        startDate: start,
+        startTime: startTimeStr,
+        endTime: endDateTime, // Sending full ISO string or whatever input gives? Verify schema expectation. Schema says string.
+        questionIds: selectedQuestions
+    }, {
+        onSuccess: () => {
+            navigate("/contests")
+        },
+        onError: (err) => {
+            alert("Failed to create contest: " + err.message)
+        }
+    })
+  }
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
@@ -39,6 +83,8 @@ export function CreateContest() {
             <Input 
               placeholder="e.g. Weekly Leetcode Sprint #45" 
               className="font-sans" 
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
             />
           </div>
           
@@ -47,17 +93,29 @@ export function CreateContest() {
             <Textarea 
               placeholder="Rules, prizes, and specific instructions..." 
               className="h-32 font-sans" 
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
             />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Start Time</Label>
-              <Input type="datetime-local" className="font-mono" />
+              <Input 
+                 type="datetime-local" 
+                 className="font-mono" 
+                 value={startDateTime}
+                 onChange={(e) => setStartDateTime(e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <Label>End Time</Label>
-              <Input type="datetime-local" className="font-mono" />
+              <Input 
+                 type="datetime-local" 
+                 className="font-mono" 
+                 value={endDateTime}
+                 onChange={(e) => setEndDateTime(e.target.value)}
+              />
             </div>
           </div>
 
@@ -69,12 +127,16 @@ export function CreateContest() {
               </Button>
             </div>
             
-            <QuestionTable 
-               questions={MOCK_QUESTIONS}
-               isSelectable
-               selectedIds={selectedQuestions}
-               onSelectionChange={setSelectedQuestions}
-            />
+            {loadingQuestions ? (
+                <div>Loading questions...</div>
+            ) : (
+                <QuestionTable 
+                   questions={uiQuestions}
+                   isSelectable
+                   selectedIds={selectedQuestions}
+                   onSelectionChange={setSelectedQuestions}
+                />
+            )}
             {selectedQuestions.length > 0 && (
                 <p className="mt-2 text-sm text-muted-foreground text-right">
                     {selectedQuestions.length} question(s) selected
@@ -86,9 +148,9 @@ export function CreateContest() {
              <Link to="/contests">
               <Button variant="outline">Cancel</Button>
              </Link>
-            <Button className="gap-2">
+            <Button className="gap-2" onClick={handleSave} disabled={createContest.isPending}>
               <Save className="h-4 w-4" />
-              Save Contest
+              {createContest.isPending ? "Saving..." : "Save Contest"}
             </Button>
           </div>
         </CardContent>

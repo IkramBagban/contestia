@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom"
+import { Link, useLocation, useNavigate } from "react-router-dom"
 import { cn } from "@/lib/utils"
 import { 
   LayoutDashboard, 
@@ -8,6 +8,7 @@ import {
   LogOut,
   Users
 } from "lucide-react"
+import { useLogout } from "@/hooks/use-queries"
 
 const sidebarItems = [
   {
@@ -39,12 +40,25 @@ const sidebarItems = [
 
 export function Sidebar({ className }: { className?: string }) {
   const location = useLocation()
+  const navigate = useNavigate()
+  const logout = useLogout()
+
+  const handleLogout = async () => {
+    try {
+      await logout.mutateAsync()
+      navigate("/login")
+    } catch (error) {
+      console.error("Logout failed", error)
+    }
+  }
 
   return (
     <div className={cn("flex flex-col h-full border-r border-border/50 bg-card/50 backdrop-blur-xl w-64", className)}>
       <div className="p-6 border-b border-border/50">
         <h1 className="text-xl font-bold font-sans tracking-tight text-primary flex items-center gap-2">
-          <span className="text-2xl">&lt;/&gt;</span>
+          {/* <span className="text-2xl">&lt;/&gt;</span> */}
+          <img src="logo.png" alt="Contestia Logo" className="h-6 w-6" />
+
           Contestia
         </h1>
       </div>
@@ -73,9 +87,13 @@ export function Sidebar({ className }: { className?: string }) {
       </nav>
 
       <div className="p-4 border-t border-border/50">
-        <button className="flex items-center gap-3 px-3 py-2.5 w-full rounded-md text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors">
+        <button 
+          onClick={handleLogout}
+          disabled={logout.isPending}
+          className="flex items-center gap-3 px-3 py-2.5 w-full rounded-md text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
+        >
           <LogOut className="h-4 w-4" />
-          Logout
+          {logout.isPending ? "Logging out..." : "Logout"}
         </button>
       </div>
     </div>

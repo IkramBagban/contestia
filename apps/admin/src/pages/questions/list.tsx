@@ -1,10 +1,23 @@
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import { useNavigate } from "react-router-dom"
-import { MOCK_QUESTIONS, QuestionTable } from "@/components/domain/questions/question-table"
+import { QuestionTable, Question as UIQuestion } from "@/components/domain/questions/question-table"
+import { useQuestions } from "@/hooks/use-queries"
 
 export function QuestionsList() {
   const navigate = useNavigate()
+  const { data: questions = [], isLoading } = useQuestions()
+
+  if (isLoading) return <div>Loading questions...</div>
+
+  // Map API questions to UI questions
+  const uiQuestions: UIQuestion[] = questions.map((q, i) => ({
+    id: q.id,
+    title: q.text?.substring(0, 50) || "Untitled", // Truncate text for title
+    type: q.type.toLowerCase() as any,
+    description: q.text,
+    points: q.points
+  }))
 
   return (
     <div className="space-y-6">
@@ -19,7 +32,7 @@ export function QuestionsList() {
         </Button>
       </div>
 
-      <QuestionTable questions={MOCK_QUESTIONS} />
+      <QuestionTable questions={uiQuestions} />
     </div>
   )
 }

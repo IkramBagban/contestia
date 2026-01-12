@@ -8,9 +8,28 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
+import { useState } from "react"
+import { useLogin } from "@/hooks/use-queries"
 
 export function LoginPage() {
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const login = useLogin()
+  const navigate = useNavigate()
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    login.mutate({ email, password }, {
+      onSuccess: () => {
+        navigate("/dashboard")
+      },
+      onError: (error) => {
+        alert("Login failed: " + (error as any).response?.data?.error || error.message)
+      }
+    })
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md space-y-8">
@@ -31,7 +50,7 @@ export function LoginPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -40,6 +59,8 @@ export function LoginPage() {
                   placeholder="admin@contestia.com"
                   required
                   className="font-mono bg-secondary/50 border-input"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
@@ -57,10 +78,12 @@ export function LoginPage() {
                   type="password"
                   required
                   className="font-mono bg-secondary/50 border-input"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
-              <Button type="submit" className="w-full font-medium" size="lg">
-                Sign In
+              <Button type="submit" className="w-full" disabled={login.isPending}>
+                {login.isPending ? "Signing in..." : "Sign in"}
               </Button>
             </form>
             <div className="mt-4 text-center text-sm text-muted-foreground">

@@ -1,12 +1,31 @@
 import { Sidebar } from "./sidebar"
-import { Outlet } from "react-router-dom"
+import { Outlet, useNavigate } from "react-router-dom"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
-import { Menu } from "lucide-react"
-import { useState } from "react"
+import { Menu, Loader2 } from "lucide-react"
+import { useState, useEffect } from "react"
+import { useMe } from "@/hooks/use-queries"
 
 export function DashboardLayout() {
   const [open, setOpen] = useState(false)
+  const { data: user, isLoading, isError } = useMe()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    if (!isLoading && (isError || !user)) {
+      navigate("/login")
+    }
+  }, [user, isLoading, isError, navigate])
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (isError || !user) return null
 
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden font-sans">
