@@ -3,22 +3,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { ArrowLeft } from "lucide-react"
-import { useNavigate, useSearchParams } from "react-router-dom"
+import { ArrowLeft, Loader2 } from "lucide-react"
+import { useNavigate, useSearchParams, useParams } from "react-router-dom"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
-import { useCreateQuestion } from "@/hooks/use-queries"
+import { useCreateQuestion, useQuestion, useUpdateQuestion } from "@/hooks/use-queries"
+import { toast } from "sonner"
 
 export function CreateQuestion() {
   const navigate = useNavigate()
+  const { id } = useParams()
   const [searchParams, setSearchParams] = useSearchParams()
-  const type = (searchParams.get("type") || "mcq") as "mcq" | "dsa" | "sandbox"
+  const typeParam = searchParams.get("type")
   
   const createQuestion = useCreateQuestion()
+  const updateQuestion = useUpdateQuestion()
+  const { data: existingQuestion, isLoading: isLoadingQuestion } = useQuestion(id || "")
 
-  // Simple state management for the form
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [points, setPoints] = useState(10)
@@ -28,9 +31,43 @@ export function CreateQuestion() {
     { id: 'C', text: '', isCorrect: false },
     { id: 'D', text: '', isCorrect: false },
   ])
+  
+  const [type, setType] = useState<"mcq" | "dsa" | "sandbox">("mcq")
+
+  useEffect(() => {
+      if (typeParam) {
+          setType(typeParam as any)
+      } else if (existingQuestion) {
+          setType(existingQuestion.type === "MCQ" ? "mcq" : "dsa")
+      }
+  }, [typeParam, existingQuestion])
+
+
+  useEffect(() => {
+    if (existingQuestion) {
+      // Split title and description from text if possible, or just set title
+      const parts = existingQuestion.text.split("\n\n")
+      setTitle(parts[0])
+      setDescription(parts.slice(1).join("\n\n"))
+      setPoints(existingQuestion.points)
+      
+      if (existingQuestion.type === 'MCQ' && existingQuestion.options) { // Assuming options are returned
+        // Map existing options or pad with empty ones if less than 4
+        // Or just use existing options. For simplicity, let's try to map to 4 slots if possible
+        const newOpts = existingQuestion.options.map((o: any, i: number) => ({
+            id: String.fromCharCode(65 + i),
+            text: o.text,
+            isCorrect: o.isCorrect
+        }))
+        // Ensure at least 4 for UI consistency if that's desired, or just use dynamic list
+        setOptions(newOpts.length > 0 ? newOpts : options) 
+      }
+    }
+  }, [existingQuestion])
 
   const handleTypeChange = (value: string) => {
     setSearchParams({ type: value })
+    setType(value as any)
   }
 
   const handleOptionChange = (index: number, field: 'text' | 'isCorrect', value: string | boolean | "indeterminate") => {
@@ -44,7 +81,6 @@ export function CreateQuestion() {
   }
 
   const handleSave = () => {
-    // Combine title and description for 'text' field
     const text = description ? `${title}\n\n${description}` : title
 
     const payload = {
@@ -57,27 +93,42 @@ export function CreateQuestion() {
         })) : undefined
     }
 
-    createQuestion.mutate(payload as any, {
+    const mutation = id ? updateQuestion : createQuestion
+    const mutationArgs = id ? { id, payload } : payload
+
+    mutation.mutate(mutationArgs as any, {
         onSuccess: () => {
+             toast.success(id ? "Question updated successfully" : "Question created successfully")
              navigate("/questions")
         },
         onError: (error) => {
-            alert("Failed to create question: " + error.message)
+            toast.error("Failed to save question: " + error.message)
         }
     })
   }
 
+  if (id && isLoadingQuestion) {
+      return (
+          <div className="flex h-96 items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+      )
+  }
+
+  const isPending = createQuestion.isPending || updateQuestion.isPending
+
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+        <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="cursor-pointer">
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Add New Question</h2>
-          <p className="text-muted-foreground">Add a challenge to your question bank.</p>
+          <h2 className="text-2xl font-bold tracking-tight">{id ? "Edit Question" : "Add New Question"}</h2>
+          <p className="text-muted-foreground">{id ? "Update existing challenge." : "Add a challenge to your question bank."}</p>
         </div>
       </div>
+
 
       <div className="grid gap-6">
         {/* Type Selection */}
@@ -179,9 +230,10 @@ export function CreateQuestion() {
         )}
 
         <div className="flex justify-end gap-3 pt-4">
-             <Button variant="outline" onClick={() => navigate(-1)}>Cancel</Button>
-            <Button className="gap-2" onClick={handleSave} disabled={createQuestion.isPending}>
-              {createQuestion.isPending ? "Saving..." : "Save Question"}
+             <Button variant="outline" onClick={() => navigate(-1)} className="cursor-pointer">Cancel</Button>
+            <Button className="gap-2 cursor-pointer" onClick={handleSave} disabled={isPending}>
+              {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              {id ? "Update Question" : "Save Question"}
             </Button>
         </div>
       </div>

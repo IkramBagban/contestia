@@ -32,7 +32,10 @@ export function QuestionsList() {
         </Button>
       </div>
 
-      <QuestionTable questions={uiQuestions} />
+      <QuestionTable 
+        questions={uiQuestions} 
+        onEdit={(id) => navigate(`/questions/edit/${id}`)}
+      />
     </div>
   )
 }

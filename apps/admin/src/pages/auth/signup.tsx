@@ -11,6 +11,8 @@ import { Label } from "@/components/ui/label"
 import { Link, useNavigate } from "react-router-dom"
 import { useState } from "react"
 import { useSignup } from "@/hooks/use-queries"
+import { toast } from "sonner"
+import { Loader2 } from "lucide-react"
 
 export function SignupPage() {
   const [fullname, setFullname] = useState("")
@@ -23,11 +25,13 @@ export function SignupPage() {
     e.preventDefault()
     signup.mutate({ fullname, email, password }, {
       onSuccess: () => {
+        toast.success("Account created successfully")
         // Redirect to login or auto-login
         navigate("/login")
       },
       onError: (error) => {
-        alert("Signup failed: " + (error as any).response?.data?.error || error.message)
+        const message = (error as any).response?.data?.error || error.message
+        toast.error("Signup failed: " + message)
       }
     })
   }
@@ -87,7 +91,8 @@ export function SignupPage() {
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={signup.isPending}>
+              <Button type="submit" className="w-full cursor-pointer" disabled={signup.isPending}>
+                {signup.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {signup.isPending ? "Creating account..." : "Create account"}
               </Button>
             </form>

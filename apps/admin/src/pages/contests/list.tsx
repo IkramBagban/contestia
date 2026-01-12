@@ -95,6 +95,7 @@ function ContestTable({
   showEdit?: boolean, 
   showLeaderboard?: boolean 
 }) {
+  const navigate = useNavigate()
   return (
     <div className="rounded-md border border-border/50 bg-card">
       <Table>
@@ -102,6 +103,7 @@ function ContestTable({
           <TableRow className="border-border/50 hover:bg-muted/50">
             <TableHead>Contest Name</TableHead>
             <TableHead>Start Time</TableHead>
+            <TableHead>Points</TableHead>
             <TableHead>Participants</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
@@ -121,6 +123,7 @@ function ContestTable({
                 <TableCell className="font-mono text-xs text-muted-foreground">
                   {new Date(contest.startDate).toLocaleString()}
                 </TableCell>
+                <TableCell className="font-mono">{contest.totalPoints || 0}</TableCell>
                 <TableCell className="font-mono text-muted-foreground">-</TableCell> 
                 {/* Participants not in API response yet */}
                 <TableCell>
@@ -128,7 +131,12 @@ function ContestTable({
                 </TableCell>
                 <TableCell className="text-right space-x-2">
                   {showEdit && (
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0 cursor-pointer"
+                        onClick={() => contest.id && navigate(`/contests/edit/${contest.id}`)}
+                    >
                       <Edit2 className="h-4 w-4 text-muted-foreground" />
                     </Button>
                   )}

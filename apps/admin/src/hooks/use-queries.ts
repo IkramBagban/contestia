@@ -30,17 +30,13 @@ interface User {
 
 // --- Contest Types ---
 export interface Contest {
-  id?: string; // The findMany doesn't select ID! That's a problem for referencing it later.
-  // The controller selected: title, description, startDate, startTime, endTime.
-  // Prisma findMany usually returns objects. If select is used, it returns only selected fields.
-  // If 'id' is missing, I can't link to details.
-  // I must assume the controller might be updated or I request changes, but I can't change backend.
-  // For now, I'll work with what I have.
+  id?: string;
   title: string;
   description: string;
-  startDate: string; // Date comes as string from JSON
+  startDate: string;
   startTime: string;
   endTime: string;
+  totalPoints?: number;
 }
 
 interface CreateContestPayload {
@@ -139,6 +135,17 @@ export function useContests() {
   });
 }
 
+export function useContest(id: string) {
+  return useQuery({
+    queryKey: ['contests', id],
+    queryFn: async () => {
+      const { data } = await api.get<{ success: boolean; data: Contest & { questions: { question: Question }[], totalPoints: number } }>(`/contests/${id}`);
+      return data.data;
+    },
+    enabled: !!id,
+  });
+}
+
 export function useCreateContest() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -148,6 +155,20 @@ export function useCreateContest() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contests'] });
+    },
+  });
+}
+
+export function useUpdateContest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, payload }: { id: string; payload: CreateContestPayload }) => {
+      const { data } = await api.put(`/contests/${id}`, payload);
+      return data;
+    },
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['contests'] });
+      queryClient.invalidateQueries({ queryKey: ['contests', id] });
     },
   });
 }
@@ -164,6 +185,17 @@ export function useQuestions() {
   });
 }
 
+export function useQuestion(id: string) {
+  return useQuery({
+    queryKey: ['questions', id],
+    queryFn: async () => {
+      const { data } = await api.get<{ success: boolean; data: Question }>(`/questions/${id}`);
+      return data.data;
+    },
+    enabled: !!id,
+  });
+}
+
 export function useCreateQuestion() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -173,6 +205,20 @@ export function useCreateQuestion() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['questions'] });
+    },
+  });
+}
+
+export function useUpdateQuestion() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, payload }: { id: string; payload: CreateQuestionPayload }) => {
+      const { data } = await api.put(`/questions/${id}`, payload);
+      return data;
+    },
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['questions'] });
+      queryClient.invalidateQueries({ queryKey: ['questions', id] });
     },
   });
 }

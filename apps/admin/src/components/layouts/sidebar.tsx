@@ -9,6 +9,7 @@ import {
   Users
 } from "lucide-react"
 import { useLogout } from "@/hooks/use-queries"
+import { toast } from "sonner"
 
 const sidebarItems = [
   {
@@ -26,16 +27,16 @@ const sidebarItems = [
     href: "/questions",
     icon: FileQuestion,
   },
-  {
-    title: "Users",
-    href: "/users",
-    icon: Users,
-  },
-  {
-    title: "Settings",
-    href: "/settings",
-    icon: Settings,
-  },
+  // {
+  //   title: "Users",
+  //   href: "/users",
+  //   icon: Users,
+  // },
+  // {
+  //   title: "Settings",
+  //   href: "/settings",
+  //   icon: Settings,
+  // },
 ]
 
 export function Sidebar({ className }: { className?: string }) {
@@ -46,8 +47,10 @@ export function Sidebar({ className }: { className?: string }) {
   const handleLogout = async () => {
     try {
       await logout.mutateAsync()
+      toast.success("Logged out successfully")
       navigate("/login")
     } catch (error) {
+      toast.error("Logout failed")
       console.error("Logout failed", error)
     }
   }

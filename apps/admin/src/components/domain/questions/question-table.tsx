@@ -56,13 +56,15 @@ interface QuestionTableProps {
   isSelectable?: boolean
   selectedIds?: string[]
   onSelectionChange?: (selectedIds: string[]) => void
+  onEdit?: (id: string) => void
 }
 
 export function QuestionTable({ 
   questions, 
   isSelectable = false, 
   selectedIds = [], 
-  onSelectionChange 
+  onSelectionChange,
+  onEdit
 }: QuestionTableProps) {
   
   const toggleSelection = (id: string) => {
@@ -127,12 +129,18 @@ export function QuestionTable({
                 <TableCell className="font-mono text-muted-foreground">{question.points}</TableCell>
                 {!isSelectable && (
                   <TableCell className="text-right space-x-2">
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 w-8 p-0 cursor-pointer" 
+                      onClick={() => onEdit?.(question.id)}
+                    >
                       <Edit2 className="h-4 w-4 text-muted-foreground" />
                     </Button>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    {/* View functionality could be same as edit or a modal */}
+                    {/* <Button variant="ghost" size="sm" className="h-8 w-8 p-0 cursor-pointer">
                       <Eye className="h-4 w-4 text-muted-foreground" />
-                    </Button>
+                    </Button> */}
                   </TableCell>
                 )}
               </TableRow>

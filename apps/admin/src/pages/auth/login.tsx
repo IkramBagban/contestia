@@ -11,6 +11,8 @@ import { Label } from "@/components/ui/label"
 import { Link, useNavigate } from "react-router-dom"
 import { useState } from "react"
 import { useLogin } from "@/hooks/use-queries"
+import { toast } from "sonner"
+import { Loader2 } from "lucide-react"
 
 export function LoginPage() {
   const [email, setEmail] = useState("")
@@ -22,10 +24,12 @@ export function LoginPage() {
     e.preventDefault()
     login.mutate({ email, password }, {
       onSuccess: () => {
+        toast.success("Logged in successfully")
         navigate("/dashboard")
       },
       onError: (error) => {
-        alert("Login failed: " + (error as any).response?.data?.error || error.message)
+        const message = (error as any).response?.data?.error || error.message
+        toast.error("Login failed: " + message)
       }
     })
   }
@@ -82,7 +86,8 @@ export function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={login.isPending}>
+              <Button type="submit" className="w-full cursor-pointer" disabled={login.isPending}>
+                {login.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {login.isPending ? "Signing in..." : "Sign in"}
               </Button>
             </form>

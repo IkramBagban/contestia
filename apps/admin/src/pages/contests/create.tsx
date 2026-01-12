@@ -3,23 +3,63 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { ArrowLeft, Save } from "lucide-react"
-import { useNavigate, Link } from "react-router-dom"
+import { ArrowLeft, Save, Loader2 } from "lucide-react"
+import { useNavigate, useParams } from "react-router-dom"
 import { QuestionTable, Question as UIQuestion } from "@/components/domain/questions/question-table"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
-import { useCreateContest, useQuestions } from "@/hooks/use-queries"
+import { useCreateContest, useQuestions, useContest, useUpdateContest } from "@/hooks/use-queries"
+import { toast } from "sonner"
 
 export function CreateContest() {
   const navigate = useNavigate()
+  const { id } = useParams()
+  
   const createContest = useCreateContest()
+  const updateContest = useUpdateContest()
   const { data: questions = [], isLoading: loadingQuestions } = useQuestions()
+  const { data: existingContest, isLoading: isLoadingContest } = useContest(id || "")
   
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [startDateTime, setStartDateTime] = useState("")
   const [endDateTime, setEndDateTime] = useState("")
   const [selectedQuestions, setSelectedQuestions] = useState<string[]>([])
+
+  useEffect(() => {
+    if (existingContest) {
+      setTitle(existingContest.title)
+      setDescription(existingContest.description)
+      // Format datetime-local input: YYYY-MM-DDTHH:mm
+      const startDate = new Date(existingContest.startDate)
+      // Basic formatting, might need adjustments for timezone
+      const formatDate = (date: Date) => {
+        const pad = (n: number) => n < 10 ? '0' + n : n
+        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+      }
+      
+      setStartDateTime(formatDate(startDate))
+      
+      // endTime is string in schema/create, but let's see how it comes back. 
+      // If backend stores it as string, we can use it directly if it matches format or parse it.
+      // Schema says endTime is string. But in reality it might be ISO date string.
+      // Let's assume it attempts to be a date string.
+      try {
+          const endDate = new Date(existingContest.endTime)
+          if (!isNaN(endDate.getTime())) {
+              setEndDateTime(formatDate(endDate))
+          } else {
+              setEndDateTime(existingContest.endTime)
+          }
+      } catch (e) {
+          setEndDateTime(existingContest.endTime)
+      }
+
+      if (existingContest.questions) {
+        setSelectedQuestions(existingContest.questions.map((q: any) => q.question.id))
+      }
+    }
+  }, [existingContest])
 
   // Map API questions to UI questions
   const uiQuestions: UIQuestion[] = questions.map((q, i) => ({
@@ -32,7 +72,7 @@ export function CreateContest() {
 
   const handleSave = () => {
     if (!startDateTime || !endDateTime) {
-        alert("Please set start and end times")
+        toast.error("Please set start and end times")
         return
     }
 
@@ -41,40 +81,64 @@ export function CreateContest() {
     // Extract time string HH:mm
     const startTimeStr = start.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
 
-    createContest.mutate({
+    const payload = {
         title,
         description,
         startDate: start,
         startTime: startTimeStr,
-        endTime: endDateTime, // Sending full ISO string or whatever input gives? Verify schema expectation. Schema says string.
+        endTime: endDateTime, 
         questionIds: selectedQuestions
-    }, {
+    }
+
+    const mutation = id ? updateContest : createContest
+    const mutationArgs = id ? { id, payload } : payload
+
+    mutation.mutate(mutationArgs as any, {
         onSuccess: () => {
+            toast.success(id ? "Contest updated successfully" : "Contest created successfully")
             navigate("/contests")
         },
-        onError: (err) => {
-            alert("Failed to create contest: " + err.message)
+        onError: (error) => {
+            toast.error("Failed to save contest: " + error.message)
         }
     })
   }
 
+  const isPending = createContest.isPending || updateContest.isPending
+
+  if (id && isLoadingContest) {
+      return (
+          <div className="flex h-96 items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+      )
+  }
+
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/contests")}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Create New Contest</h2>
-          <p className="text-muted-foreground">Set up the details for your upcoming battle.</p>
+    <div className="space-y-6 max-w-5xl mx-auto">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="cursor-pointer">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">{id ? "Edit Contest" : "Create Contest"}</h2>
+            <p className="text-muted-foreground">{id ? "Update contest details" : "Setup a new coding battle."}</p>
+          </div>
+        </div>
+        <div className="flex gap-3">
+            <Button variant="outline" onClick={() => navigate(-1)} className="cursor-pointer">Cancel</Button>
+            <Button className="gap-2 cursor-pointer" onClick={handleSave} disabled={isPending}>
+                {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                {id ? "Update Contest" : "Create Contest"}
+            </Button>
         </div>
       </div>
-
       <Card className="border-border/50 bg-card">
         <CardHeader>
           <CardTitle>Contest Details</CardTitle>
           <CardDescription>
-            Basic information about the contest.
+            {id ? "Update information about the contest." : "Basic information about the contest."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -138,20 +202,15 @@ export function CreateContest() {
                 />
             )}
             {selectedQuestions.length > 0 && (
-                <p className="mt-2 text-sm text-muted-foreground text-right">
-                    {selectedQuestions.length} question(s) selected
-                </p>
+                <div className="flex justify-between items-center mt-2">
+                    <p className="text-sm font-medium">
+                        Total Points: {uiQuestions.filter(q => selectedQuestions.includes(q.id)).reduce((acc, q) => acc + q.points, 0)}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                        {selectedQuestions.length} question(s) selected
+                    </p>
+                </div>
             )}
-          </div>
-          
-          <div className="flex justify-end gap-3 pt-4">
-             <Link to="/contests">
-              <Button variant="outline">Cancel</Button>
-             </Link>
-            <Button className="gap-2" onClick={handleSave} disabled={createContest.isPending}>
-              <Save className="h-4 w-4" />
-              {createContest.isPending ? "Saving..." : "Save Contest"}
-            </Button>
           </div>
         </CardContent>
       </Card>

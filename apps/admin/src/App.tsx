@@ -8,10 +8,12 @@ import { CreateContest } from './pages/contests/create'
 import { CreateQuestion } from './pages/questions/create'
 
 import { QuestionsList } from './pages/questions/list'
+import { Toaster } from 'sonner'
 
 function App() {
   return (
     <BrowserRouter>
+      <Toaster richColors position="top-right" />
       <Routes>
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/login" element={<LoginPage />} />
@@ -22,8 +24,10 @@ function App() {
           <Route path="dashboard" element={<DashboardHome />} />
           <Route path="contests" element={<ContestsList />} />
           <Route path="contests/new" element={<CreateContest />} />
+          <Route path="contests/edit/:id" element={<CreateContest />} />
           <Route path="questions" element={<QuestionsList />} />
           <Route path="questions/new" element={<CreateQuestion />} />
+          <Route path="questions/edit/:id" element={<CreateQuestion />} />
         </Route>
       </Routes>
     </BrowserRouter>
