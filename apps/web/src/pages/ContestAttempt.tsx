@@ -1,283 +1,335 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useContestForAttempt, useSubmitContest } from "@/hooks/use-queries";
+import { useContestForAttempt, useSubmitContest } from "../hooks/use-queries";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, Clock, ChevronLeft, ChevronRight, CheckCircle2, AlertCircle } from "lucide-react";
+import { 
+  Clock, 
+  ChevronRight, 
+  ChevronLeft, 
+  CheckCircle2, 
+  Menu,
+  Check,
+  Code2,
+  Maximize2
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface Question {
-    id: string;
-    text: string;
-    type: 'MCQ' | 'DSA';
-    points: number;
-    options: Array<{
-        id: string;
-        text: string;
-    }>;
-}
-
 export function ContestAttemptPage() {
-    const { id } = useParams<{ id: string }>();
-    const navigate = useNavigate();
-    
-    // Fetch contest data
-    const { data: contest, isLoading, isError } = useContestForAttempt(id!);
-    const { mutate: submitContest, isPending: isSubmitting } = useSubmitContest();
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { data: contestData, isLoading, error } = useContestForAttempt(id || "");
+  const submitContest = useSubmitContest();
 
-    // State
-    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-    const [answers, setAnswers] = useState<Record<string, string>>({});
-    const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  // State
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
-    // Derived state
-    const questions = useMemo(() => {
-        if (!contest?.questions) return [];
-        return contest.questions.map((q: any) => q.question) as Question[];
-    }, [contest]);
+  // Load saved answers from local storage on mount
+  useEffect(() => {
+    if (id) {
+      const saved = localStorage.getItem(`contest_${id}_answers`);
+      if (saved) {
+        setAnswers(JSON.parse(saved));
+      }
+    }
+  }, [id]);
 
-    const currentQuestion = questions[currentQuestionIndex];
+  // Save answers to local storage whenever they change
+  useEffect(() => {
+    if (id && Object.keys(answers).length > 0) {
+      localStorage.setItem(`contest_${id}_answers`, JSON.stringify(answers));
+    }
+  }, [id, answers]);
 
-    // Timer Logic
-    useEffect(() => {
-        if (!contest) return;
+  // Timer Logic
+  useEffect(() => {
+    if (!contestData) return;
 
-        // Construct End Date Time
-        // Assuming startDate is a date string/object and endTime is "HH:mm"
-        try {
-            const startDate = new Date(contest.startDate);
-            const [hours, minutes] = contest.endTime.split(':').map(Number);
-            
-            const endDate = new Date(startDate);
-            endDate.setHours(hours, minutes, 0, 0);
+    try {
+      const startDate = new Date(contestData.startDate);
+      const [hours, minutes] = contestData.endTime.split(":").map(Number);
+      
+      const endDate = new Date(startDate);
+      endDate.setHours(hours, minutes, 0, 0);
+      
+      const calculateTimeLeft = () => {
+        const now = new Date();
+        const diff = endDate.getTime() - now.getTime();
+        return diff > 0 ? diff : 0;
+      };
 
-            const calculateTimeLeft = () => {
-                const now = new Date();
-                const diff = endDate.getTime() - now.getTime();
-                return Math.max(0, diff);
-            };
+      setTimeLeft(calculateTimeLeft());
 
-            setTimeLeft(calculateTimeLeft());
-
-            const timer = setInterval(() => {
-                const remaining = calculateTimeLeft();
-                setTimeLeft(remaining);
-                if (remaining <= 0) {
-                    clearInterval(timer);
-                    handleSubmit(true); // Auto submit
-                }
-            }, 1000);
-
-            return () => clearInterval(timer);
-        } catch (e) {
-            console.error("Error parsing date", e);
+      const timerIdx = setInterval(() => {
+        const remaining = calculateTimeLeft();
+        setTimeLeft(remaining);
+        if (remaining <= 0) {
+          clearInterval(timerIdx);
+          handleAutoSubmit();
         }
-    }, [contest]);
+      }, 1000);
 
+      return () => clearInterval(timerIdx);
+    } catch (e) {
+      console.error("Timer error", e);
+    }
+  }, [contestData]);
 
-    const handleOptionSelect = (value: string) => {
-        if (!currentQuestion) return;
-        setAnswers(prev => ({
-            ...prev,
-            [currentQuestion.id]: value
-        }));
-    };
+  const handleOptionSelect = (questionId: string, optionId: string) => {
+    setAnswers((prev) => ({
+      ...prev,
+      [questionId]: optionId,
+    }));
+  };
 
-    const handleSubmit = (auto = false) => {
-        if (!id) return;
-        
-        if (!auto && !window.confirm("Are you sure you want to submit? You cannot change your answers after submission.")) {
-            return;
+  const handleNext = () => {
+    if (contestData && currentQuestionIndex < contestData.questions.length - 1) {
+      setCurrentQuestionIndex((prev) => prev + 1);
+    }
+  };
+
+  const handlePrev = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex((prev) => prev - 1);
+    }
+  };
+
+  const handleSubmit = () => {
+    if (!id) return;
+    if (confirm("Are you sure you want to finish the contest?")) {
+      submitContest.mutate(
+        { contestId: id, answers },
+        {
+          onSuccess: () => {
+            localStorage.removeItem(`contest_${id}_answers`);
+            toast.success("Contest submitted successfully!");
+            navigate("/dashboard");
+          },
+          onError: () => {
+            toast.error("Failed to submit contest. Please try again.");
+          }
         }
-
-        submitContest({ contestId: id, answers }, {
-            onSuccess: () => {
-                toast.success(auto ? "Time's up! Contest submitted." : "Contest submitted successfully!");
-                navigate(`/dashboard`); // Ideally redirect to a results page if available
-            },
-            onError: (err: any) => {
-                toast.error(err.response?.data?.message || "Submission failed");
-            }
-        });
-    };
-
-    const formatTime = (ms: number) => {
-        const totalSeconds = Math.floor(ms / 1000);
-        const hours = Math.floor(totalSeconds / 3600);
-        const minutes = Math.floor((totalSeconds % 3600) / 60);
-        const seconds = totalSeconds % 60;
-        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    };
-
-    // --- Loading / Error States ---
-    if (isLoading) {
-        return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin h-8 w-8 text-primary"/></div>;
+      );
     }
+  };
 
-    if (isError || !contest) {
-        return (
-            <div className="h-screen flex flex-col items-center justify-center gap-4">
-                <AlertCircle className="h-12 w-12 text-destructive" />
-                <h2 className="text-xl font-bold">Failed to load contest</h2>
-                <Button onClick={() => navigate('/dashboard')}>Go Back</Button>
-            </div>
-        );
-    }
-
-    if (questions.length === 0) {
-        return (
-             <div className="h-screen flex flex-col items-center justify-center gap-4">
-                <h2 className="text-xl font-bold">No questions in this contest</h2>
-                <Button onClick={() => navigate('/dashboard')}>Go Back</Button>
-            </div>
-        );
-    }
-
-    return (
-        <div className="min-h-screen bg-gray-50 flex flex-col">
-            {/* Header */}
-            <header className="bg-white border-b px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
-                <div>
-                    <h1 className="text-xl font-bold text-gray-900">{contest.title}</h1>
-                    <p className="text-sm text-gray-500">Question {currentQuestionIndex + 1} of {questions.length}</p>
-                </div>
-                
-                <div className="flex items-center gap-6">
-                    <div className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg font-mono font-medium border border-indigo-100">
-                        <Clock className="h-4 w-4" />
-                        {timeLeft !== null ? formatTime(timeLeft) : "--:--:--"}
-                    </div>
-                    <Button 
-                        onClick={() => handleSubmit(false)} 
-                        disabled={isSubmitting}
-                        variant="default"
-                        className="bg-indigo-600 hover:bg-indigo-700"
-                    >
-                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                         Submit Contest
-                    </Button>
-                </div>
-            </header>
-
-            {/* Main Content */}
-            <main className="flex-1 max-w-7xl w-full mx-auto p-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
-                
-                {/* Left Column: Question Area */}
-                <div className="lg:col-span-3 space-y-6">
-                    <Card className="p-8 shadow-sm border-gray-200">
-                         <div className="flex justify-between items-start mb-6">
-                             <div className="space-y-1">
-                                <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Question {currentQuestionIndex + 1}</span>
-                                <h2 className="text-xl font-medium text-gray-900 leading-relaxed">
-                                    {currentQuestion.text}
-                                </h2>
-                             </div>
-                             <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">
-                                {currentQuestion.points} points
-                             </span>
-                         </div>
-
-                         <div className="mt-8">
-                             {currentQuestion.type === 'MCQ' ? (
-                                <RadioGroup 
-                                    value={answers[currentQuestion.id] || ""} 
-                                    onValueChange={handleOptionSelect}
-                                    className="space-y-3"
-                                >
-                                    {currentQuestion.options.map((option) => (
-                                        <div 
-                                            key={option.id} 
-                                            className={cn(
-                                                "flex items-center space-x-3 rounded-lg border p-4 transition-all hover:bg-gray-50 cursor-pointer",
-                                                answers[currentQuestion.id] === option.id 
-                                                    ? "border-indigo-600 bg-indigo-50 ring-1 ring-indigo-600" 
-                                                    : "border-gray-200"
-                                            )}
-                                            onClick={() => handleOptionSelect(option.id)}
-                                        >
-                                            <RadioGroupItem value={option.id} id={option.id} />
-                                            <Label htmlFor={option.id} className="flex-1 cursor-pointer font-normal text-gray-700">
-                                                {option.text}
-                                            </Label>
-                                        </div>
-                                    ))}
-                                </RadioGroup>
-                             ) : (
-                                 <div className="p-4 bg-yellow-50 text-yellow-800 rounded-md text-sm border border-yellow-200">
-                                     DSA questions are not fully supported in this interface yet.
-                                 </div>
-                             )}
-                         </div>
-                    </Card>
-
-                    <div className="flex items-center justify-between pt-4">
-                        <Button
-                            variant="outline"
-                            onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
-                            disabled={currentQuestionIndex === 0}
-                            className="w-[120px]"
-                        >
-                            <ChevronLeft className="mr-2 h-4 w-4" /> Previous
-                        </Button>
-                        <Button
-                            onClick={() => setCurrentQuestionIndex(prev => Math.min(questions.length - 1, prev + 1))}
-                            disabled={currentQuestionIndex === questions.length - 1}
-                            className="w-[120px]"
-                        >
-                            Next <ChevronRight className="ml-2 h-4 w-4" />
-                        </Button>
-                    </div>
-                </div>
-
-                {/* Right Column: Navigation Palette */}
-                <div className="lg:col-span-1">
-                    <Card className="p-5 shadow-sm border-gray-200 sticky top-24">
-                        <h3 className="font-semibold text-gray-900 mb-4">Questions</h3>
-                        <div className="grid grid-cols-5 gap-2">
-                            {questions.map((q, idx) => {
-                                const isAnswered = !!answers[q.id];
-                                const isCurrent = currentQuestionIndex === idx;
-                                
-                                return (
-                                    <button
-                                        key={q.id}
-                                        onClick={() => setCurrentQuestionIndex(idx)}
-                                        className={cn(
-                                            "h-9 w-9 rounded-md text-sm font-medium transition-all flex items-center justify-center border",
-                                            isCurrent 
-                                                ? "ring-2 ring-indigo-600 ring-offset-2 border-indigo-600 bg-indigo-600 text-white" 
-                                                : isAnswered 
-                                                    ? "bg-green-100 text-green-700 border-green-200 hover:bg-green-200"
-                                                    : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50 hover:text-gray-900"
-                                        )}
-                                    >
-                                        {idx + 1}
-                                    </button>
-                                );
-                            })}
-                        </div>
-
-                        <div className="mt-6 space-y-3 border-t pt-4">
-                            <div className="flex items-center gap-2 text-xs text-gray-600">
-                                <div className="h-3 w-3 rounded bg-indigo-600"></div>
-                                <span>Current</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-xs text-gray-600">
-                                <div className="h-3 w-3 rounded bg-green-100 border border-green-200"></div>
-                                <span>Answered</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-xs text-gray-600">
-                                <div className="h-3 w-3 rounded bg-white border border-gray-200"></div>
-                                <span>Not Visited</span>
-                            </div>
-                        </div>
-                    </Card>
-                </div>
-
-            </main>
-        </div>
+  const handleAutoSubmit = () => {
+    if (!id) return;
+    submitContest.mutate(
+      { contestId: id, answers },
+      {
+        onSuccess: () => {
+          localStorage.removeItem(`contest_${id}_answers`);
+          toast.info("Time over! Contest submitted.");
+          navigate("/dashboard");
+        },
+      }
     );
+  };
+
+  const formatTime = (ms: number) => {
+    const totalSeconds = Math.floor(ms / 1000);
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  };
+
+  if (isLoading) return <div className="flex h-screen items-center justify-center bg-background"><span className="animate-pulse text-xl font-display font-medium text-foreground">Loading Arena...</span></div>;
+  if (error || !contestData) return <div className="flex h-screen items-center justify-center text-destructive bg-background">Error loading contest.</div>;
+
+  const currentQuestion = contestData.questions[currentQuestionIndex].question; 
+  const totalQuestions = contestData.questions.length;
+  const isLastQuestion = currentQuestionIndex === totalQuestions - 1;
+  const optionLabels = ['A', 'B', 'C', 'D', 'E', 'F'];
+
+  return (
+    <div className="flex min-h-screen flex-col bg-background font-sans text-foreground transition-colors duration-300">
+      
+      {/* 1. Header Section */}
+      <header className="sticky top-0 z-20 w-full border-b border-border bg-card/80 backdrop-blur-md">
+        <div className="mx-auto flex h-16 max-w-[1400px] items-center justify-between px-4 sm:px-6">
+          
+          <div className="flex items-center gap-4">
+             {/* Icon removed based on feedback */}
+             <div>
+                <h1 className="font-display text-base font-bold text-foreground sm:text-lg">{contestData.title}</h1>
+                <p className="text-xs text-muted-foreground font-mono">Question {currentQuestionIndex + 1} / {totalQuestions}</p>
+             </div>
+          </div>
+
+          <div className="absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 rounded-full border border-border bg-card px-5 py-2 shadow-sm sm:block">
+            <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <span className={`font-mono text-xl font-bold tracking-widest ${timeLeft && timeLeft < 300000 ? 'text-destructive animate-pulse' : 'text-foreground'}`}>
+                    {timeLeft !== null ? formatTime(timeLeft) : "--:--:--"}
+                </span>
+            </div>
+          </div>
+          
+          <div>
+            <Button 
+                onClick={handleSubmit} 
+                variant="outline"
+                className="border-border font-semibold text-muted-foreground hover:bg-destructive/5 hover:text-destructive hover:border-destructive/20"
+            >
+              Submit Contest
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      {/* Mobile Timer */}
+      <div className="bg-card border-b border-border py-2 text-center text-foreground sm:hidden">
+          <span className="font-mono text-lg font-bold">
+            {timeLeft !== null ? formatTime(timeLeft) : "--:--:--"}
+          </span>
+      </div>
+
+      <main className="mx-auto grid w-full max-w-[1400px] grid-cols-1 gap-6 p-4 sm:p-6 lg:grid-cols-12 lg:p-8">
+        
+        {/* 2. Left Panel: Question Area */}
+        <div className="flex flex-col gap-6 lg:col-span-9">
+          <div className="flex flex-1 flex-col justify-between rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-10">
+            
+            <div className="mb-8">
+              <span className="mb-6 inline-block rounded-full bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-primary">
+                Problem {currentQuestionIndex + 1}
+              </span>
+              <div className="mb-8">
+                 <h2 className="whitespace-pre-wrap font-sans text-lg font-medium leading-relaxed text-foreground/90 sm:text-xl md:text-2xl">
+                    {currentQuestion.text}
+                 </h2>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {currentQuestion.options.map((option: any, idx: number) => {
+                const isSelected = answers[currentQuestion.id] === option.id;
+                
+                return (
+                  <div
+                    key={option.id}
+                    onClick={() => handleOptionSelect(currentQuestion.id, option.id)}
+                    className={cn(
+                      "group relative flex cursor-pointer items-start gap-4 rounded-2xl border-2 p-5 transition-all duration-200 ease-in-out hover:border-primary/30 hover:bg-primary/5",
+                      isSelected 
+                        ? "border-primary bg-primary/5 shadow-[0_0_0_1px_rgba(var(--primary),1)]" 
+                        : "border-border bg-card"
+                    )}
+                  >
+                     <div className={cn(
+                         "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold transition-colors",
+                         isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground group-hover:bg-primary/20 group-hover:text-primary"
+                     )}>
+                        {optionLabels[idx]}
+                     </div>
+                     
+                     <div className="flex-1 pt-1">
+                        <span className={cn(
+                            "text-base font-medium leading-relaxed",
+                            isSelected ? "text-foreground" : "text-card-foreground"
+                        )}>
+                            {option.text}
+                        </span>
+                     </div>
+                     
+                     {isSelected && (
+                         <div className="absolute right-5 top-5 text-primary">
+                             <CheckCircle2 className="h-6 w-6 fill-primary/10" />
+                         </div>
+                     )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-12 flex items-center justify-between border-t border-border pt-8">
+               <Button
+                 variant="ghost"
+                 onClick={handlePrev}
+                 disabled={currentQuestionIndex === 0}
+                 className="gap-2 text-muted-foreground hover:text-foreground"
+               >
+                 <ChevronLeft className="h-4 w-4" />
+                 Previous
+               </Button>
+
+               <Button
+                  onClick={isLastQuestion ? handleSubmit : handleNext}
+                  className={cn(
+                    "h-12 min-w-[160px] rounded-full px-8 text-base shadow-lg transition-all active:scale-95",
+                    isLastQuestion 
+                        ? "bg-green-600 hover:bg-green-700 text-white shadow-green-500/20" 
+                        : "bg-primary hover:bg-primary/90 text-primary-foreground shadow-primary/25"
+                  )}
+               >
+                 {isLastQuestion ? "Finish Contest" : "Next Question"}
+                 {!isLastQuestion && <ChevronRight className="h-4 w-4 ml-2" />}
+               </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* 3. Right Panel: Progress Tracker */}
+        <div className="lg:col-span-3">
+          <div className="sticky top-24 rounded-3xl border border-border bg-card p-6 shadow-sm">
+             <div className="mb-6 flex items-center justify-between">
+                <h3 className="font-display font-bold text-foreground">Progress</h3>
+                <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">
+                    {Object.keys(answers).length}/{totalQuestions}
+                </span>
+             </div>
+             
+             <div className="grid grid-cols-4 gap-2.5 sm:grid-cols-5 lg:grid-cols-4">
+                {contestData.questions.map((q: any, idx: number) => {
+                    const questionId = q.question.id;
+                    const isAnswered = !!answers[questionId]; 
+                    const isCurrent = currentQuestionIndex === idx;
+                    
+                    return (
+                        <button
+                            key={questionId}
+                            onClick={() => setCurrentQuestionIndex(idx)}
+                            className={cn(
+                                "flex aspect-square items-center justify-center rounded-xl text-sm font-bold transition-all",
+                                isCurrent 
+                                   ? "border-2 border-primary bg-primary/10 text-primary scale-110 shadow-lg shadow-primary/10 z-10" 
+                                   : isAnswered
+                                      ? "bg-green-500/10 text-green-600 dark:text-green-400 hover:bg-green-500/20"
+                                      : "bg-muted text-muted-foreground hover:bg-background hover:text-foreground border border-transparent hover:border-border"
+                            )}
+                        >
+                            {isAnswered && !isCurrent ? (
+                                <Check className="h-4 w-4" />
+                            ) : (
+                                idx + 1
+                            )}
+                        </button>
+                    )
+                })}
+             </div>
+
+             <div className="mt-8 space-y-3 rounded-2xl bg-muted/30 p-4">
+                <div className="flex items-center gap-3 text-xs font-medium text-muted-foreground">
+                    <div className="h-3 w-3 rounded-full border-2 border-primary bg-primary/20"></div>
+                    <span>Current Problem</span>
+                </div>
+                <div className="flex items-center gap-3 text-xs font-medium text-muted-foreground">
+                    <div className="h-3 w-3 rounded-full bg-green-500/20 text-green-500"></div>
+                    <span>Solved</span>
+                </div>
+                <div className="flex items-center gap-3 text-xs font-medium text-muted-foreground">
+                    <div className="h-3 w-3 rounded-full bg-muted border border-border"></div>
+                    <span>Unsolved</span>
+                </div>
+             </div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  );
 }
