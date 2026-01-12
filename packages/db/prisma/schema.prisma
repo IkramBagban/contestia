@@ -22,6 +22,7 @@ model User {
   updatedAt DateTime   @updatedAt
   contests  Contest[]
   questions Question[]
+  submissions Submission[]
 
   @@index([email])
 }
@@ -41,6 +42,7 @@ model Contest {
 
   questions QuestionsInContests[]
   user      User                  @relation(fields: [userId], references: [id])
+  submissions Submission[]
 }
 
 enum QuestionType {
@@ -88,3 +90,28 @@ model Option {
 
   createdAt DateTime @default(now())
 }
+
+enum SubmissionStatus {
+  PENDING
+  COMPLETED
+}
+
+model Submission {
+  id        String           @id @default(uuid())
+  userId    String
+  contestId String
+  score     Int              @default(0)
+  status    SubmissionStatus @default(PENDING)
+  answers   Json             
+  startedAt DateTime         @default(now())
+  submittedAt DateTime?
+
+  user    User    @relation(fields: [userId], references: [id])
+  contest Contest @relation(fields: [contestId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([userId, contestId])
+}
+
