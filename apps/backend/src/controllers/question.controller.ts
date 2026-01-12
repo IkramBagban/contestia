@@ -53,7 +53,93 @@ export const getQuestions = async (
     next(error);
   }
 };
+export const getQuestionById = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    const question = await prismaClient.question.findUnique({
+      where: { id },
+      include: { options: true },
+    });
 
+    if (!question) {
+      const error = new Error("Question not found");
+      // @ts-ignore
+      error.status = 404;
+      throw error;
+    }
+
+    res.status(200).json({
+      success: true,
+      data: question,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateQuestion = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    const schemaResult = createQuestionSchema.safeParse(req.body);
+
+    if (!schemaResult.success) {
+      const error = new Error(
+        "Validation Error: " + JSON.stringify(schemaResult.error.flatten())
+      );
+      // @ts-ignore
+      error.status = 400;
+      throw error;
+    }
+
+    const { type, text, points, options } = schemaResult.data;
+
+    let question;
+    if (type === "MCQ") {
+        await prismaClient.option.deleteMany({
+            where: { questionId: id }
+        });
+
+        const sanitizedOptions = options?.map((opt) => ({
+            text: opt.text,
+            isCorrect: opt.isCorrect,
+        }));
+
+        question = await prismaClient.question.update({
+            where: { id },
+            data: {
+                text,
+                points,
+                type,
+                options: {
+                    create: sanitizedOptions
+                }
+            },
+            include: { options: true }
+        });
+    } else {
+        question = await prismaClient.question.update({
+            where: { id },
+            data: { text, points, type },
+        });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Question updated successfully",
+      data: question,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 export const createQuestion = async (
   req: ExtendedRequest,
   res: Response,
