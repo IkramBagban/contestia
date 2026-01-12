@@ -13,14 +13,14 @@ export const loginSchema = z.object({
 export const createContestSchema = z.object({
   title: z.string(),
   description: z.string(),
-  startDate: z.date(),
+  startDate: z.coerce.date(),
   startTime: z.string(),
   endTime: z.string(),
   questionIds: z.array(z.string()),
 });
 
 export const optionSchema = z.object({
-  questionId: z.string(),
+  questionId: z.string().optional(),
   text: z.string(),
   isCorrect: z.boolean(),
 });

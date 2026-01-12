@@ -61,7 +61,9 @@ export const createQuestion = async (
 ) => {
   try {
     const schemaResult = createQuestionSchema.safeParse(req.body);
+    
     if (!schemaResult.success) {
+      console.log("body" , req.body);
       const error = new Error(
         "Validation Error: " + JSON.stringify(schemaResult.error.flatten())
       );
@@ -71,8 +73,13 @@ export const createQuestion = async (
     }
 
     const { type, text, points, options } = schemaResult.data;
+    console.log("schemaResult.data", schemaResult.data)
     let question = null;
     if (type === "MCQ") {
+      const sanitizedOptions = options?.map((opt) => ({
+        text: opt.text,
+        isCorrect: opt.isCorrect,
+      }));
       question = await prismaClient.question.create({
         data: {
           type: type,
@@ -80,7 +87,7 @@ export const createQuestion = async (
           points: points,
           userId: req.user!.id,
           options: {
-            create: options,
+            create: sanitizedOptions,
           },
         },
         include: {
