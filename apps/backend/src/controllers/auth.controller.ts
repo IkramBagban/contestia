@@ -4,6 +4,7 @@ import prismaClient from "@repo/db";
 import { Prisma } from "@repo/db";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import type { ExtendedRequest } from "../../utils/types";
 
 export const signup = async (
   req: Request,
@@ -88,7 +89,7 @@ export const login = async (
     }
 
     //match password
-    const isMatch = bcrypt.compare(body.password, existingUser.password);
+    const isMatch = await bcrypt.compare(body.password, existingUser.password);
 
     if (!isMatch) {
       const error = new Error("Wrong Password");
@@ -108,6 +109,38 @@ export const login = async (
     res
       .status(200)
       .json({ success: true, message: "You are logged in successfully." });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const me = async (
+  req: ExtendedRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.user?.id;
+    const user = await prismaClient.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, createdAt: true, updatedAt: true },
+    });
+    res.status(200).json({ success: true, data: user });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const logout = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    res
+      .cookie("token", undefined)
+      .status(200)
+      .json({ success: true, message: "You are logged out successfully." });
   } catch (error) {
     next(error);
   }

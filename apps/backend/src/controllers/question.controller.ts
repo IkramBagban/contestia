@@ -37,6 +37,7 @@ export const getQuestions = async (
       skip: (p - 1) * l,
       take: l,
       select: {
+        id: true,
         text: true,
         type: true,
         points: true,
