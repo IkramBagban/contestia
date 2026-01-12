@@ -145,3 +145,25 @@ export const logout = async (
     next(error);
   }
 };
+
+export const getMySubmissions = async (
+  req: ExtendedRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.user!.id;
+    const submissions = await prismaClient.submission.findMany({
+      where: { userId },
+      include: { contest: true },
+      orderBy: { startedAt: "desc" },
+    });
+
+    res.status(200).json({
+      success: true,
+      data: submissions,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

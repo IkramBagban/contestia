@@ -216,3 +216,160 @@ export const updateContest = async (
     next(error);
   }
 };
+
+export const startContest = async (
+  req: ExtendedRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user!.id;
+
+    const contest = await prismaClient.contest.findUnique({ where: { id } });
+    if (!contest) {
+      throw Object.assign(new Error("Contest not found"), { status: 404 });
+    }
+
+    let submission = await prismaClient.submission.findUnique({
+      where: {
+        userId_contestId: {
+          userId,
+          contestId: id,
+        },
+      },
+    });
+
+    if (!submission) {
+      submission = await prismaClient.submission.create({
+        data: {
+          userId,
+          contestId: id,
+          status: "PENDING",
+          startedAt: new Date(),
+          answers: {},
+        },
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Contest started",
+      data: submission,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const submitContest = async (
+  req: ExtendedRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user!.id;
+    const { answers } = req.body;
+
+    const submission = await prismaClient.submission.findUnique({
+      where: { userId_contestId: { userId, contestId: id } },
+    });
+
+    if (!submission) {
+      throw Object.assign(new Error("Submission not found. Start contest first."), { status: 404 });
+    }
+
+    if (submission.status === "COMPLETED") {
+      throw Object.assign(new Error("Contest already submitted"), { status: 400 });
+    }
+
+    const contestQuestions = await prismaClient.questionsInContests.findMany({
+      where: { contestId: id },
+      include: {
+        question: {
+          include: {
+            options: {
+              where: { isCorrect: true },
+            },
+          },
+        },
+      },
+    });
+
+    let score = 0;
+
+    for (const item of contestQuestions) {
+      const q = item.question;
+      const selectedOptionId = answers[q.id];
+      if (selectedOptionId) {
+        const correctOption = q.options.find((o) => o.isCorrect);
+        if (correctOption && correctOption.id === selectedOptionId) {
+          score += q.points;
+        }
+      }
+    }
+
+    const updatedSubmission = await prismaClient.submission.update({
+      where: { id: submission.id },
+      data: {
+        status: "COMPLETED",
+        submittedAt: new Date(),
+        score,
+        answers: answers || {},
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Contest submitted successfully",
+      data: updatedSubmission,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getContestForAttempt = async (
+  req: ExtendedRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    const contest = await prismaClient.contest.findUnique({
+      where: { id },
+      include: {
+        questions: {
+          include: {
+            question: {
+              select: {
+                id: true,
+                text: true,
+                type: true,
+                points: true,
+                options: {
+                  select: {
+                    id: true,
+                    text: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!contest) {
+      throw Object.assign(new Error("Contest not found"), { status: 404 });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: contest,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
