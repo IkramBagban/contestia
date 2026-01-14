@@ -19,7 +19,7 @@ export function CreateQuestion() {
   const { id } = useParams()
   const [searchParams, setSearchParams] = useSearchParams()
   const typeParam = searchParams.get("type")
-  
+
   const createQuestion = useCreateQuestion()
   const updateQuestion = useUpdateQuestion()
   const { data: existingQuestion, isLoading: isLoadingQuestion } = useQuestion(id || "")
@@ -33,15 +33,16 @@ export function CreateQuestion() {
     { id: 'C', text: '', isCorrect: false },
     { id: 'D', text: '', isCorrect: false },
   ])
-  
+  const [testCases, setTestCases] = useState<{ input: string, output: string }[]>([])
+
   const [type, setType] = useState<"mcq" | "dsa" | "sandbox">("mcq")
 
   useEffect(() => {
-      if (typeParam) {
-          setType(typeParam as any)
-      } else if (existingQuestion) {
-          setType(existingQuestion.type === "MCQ" ? "mcq" : "dsa")
-      }
+    if (typeParam) {
+      setType(typeParam as any)
+    } else if (existingQuestion) {
+      setType(existingQuestion.type === "MCQ" ? "mcq" : "dsa")
+    }
   }, [typeParam, existingQuestion])
 
 
@@ -50,17 +51,24 @@ export function CreateQuestion() {
       // Use full text for the rich text editor
       setQuestionText(existingQuestion.text)
       setPoints(existingQuestion.points)
-      
+
       if (existingQuestion.type === 'MCQ' && existingQuestion.options) { // Assuming options are returned
         // Map existing options or pad with empty ones if less than 4
         // Or just use existing options. For simplicity, let's try to map to 4 slots if possible
         const newOpts = existingQuestion.options.map((o: any, i: number) => ({
-            id: String.fromCharCode(65 + i),
-            text: o.text,
-            isCorrect: o.isCorrect
+          id: String.fromCharCode(65 + i),
+          text: o.text,
+          isCorrect: o.isCorrect
         }))
         // Ensure at least 4 for UI consistency if that's desired, or just use dynamic list
-        setOptions(newOpts.length > 0 ? newOpts : options) 
+        setOptions(newOpts.length > 0 ? newOpts : options)
+      }
+
+      if (existingQuestion.type === 'DSA' && existingQuestion.testCases) {
+        setTestCases(existingQuestion.testCases.map((tc: any) => ({
+          input: tc.input,
+          output: tc.output
+        })))
       }
     }
   }, [existingQuestion])
@@ -73,9 +81,9 @@ export function CreateQuestion() {
   const handleOptionChange = (index: number, field: 'text' | 'isCorrect', value: string | boolean | "indeterminate") => {
     const newOptions = [...options]
     if (field === 'isCorrect') {
-        newOptions[index].isCorrect = value === true 
+      newOptions[index].isCorrect = value === true
     } else {
-        newOptions[index].text = value as string
+      newOptions[index].text = value as string
     }
     setOptions(newOptions)
   }
@@ -85,35 +93,36 @@ export function CreateQuestion() {
     const text = questionText
 
     const payload = {
-        type: type === 'mcq' ? 'MCQ' : 'DSA',
-        text,
-        points: Number(points),
-        options: type === 'mcq' ? options.map(o => ({
-            text: o.text,
-            isCorrect: o.isCorrect,
-        })) : undefined
+      type: type === 'mcq' ? 'MCQ' : 'DSA',
+      text,
+      points: Number(points),
+      options: type === 'mcq' ? options.map(o => ({
+        text: o.text,
+        isCorrect: o.isCorrect,
+      })) : undefined,
+      testCases: type === 'dsa' ? testCases : undefined
     }
 
     const mutation = id ? updateQuestion : createQuestion
     const mutationArgs = id ? { id, payload } : payload
 
     mutation.mutate(mutationArgs as any, {
-        onSuccess: () => {
-             toast.success(id ? "Question updated successfully" : "Question created successfully")
-             navigate("/questions")
-        },
-        onError: (error) => {
-            toast.error("Failed to save question: " + error.message)
-        }
+      onSuccess: () => {
+        toast.success(id ? "Question updated successfully" : "Question created successfully")
+        navigate("/questions")
+      },
+      onError: (error) => {
+        toast.error("Failed to save question: " + error.message)
+      }
     })
   }
 
   if (id && isLoadingQuestion) {
-      return (
-          <div className="flex h-96 items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-      )
+    return (
+      <div className="flex h-96 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
   }
 
   const isPending = createQuestion.isPending || updateQuestion.isPending
@@ -136,61 +145,61 @@ export function CreateQuestion() {
         <Card className="border-border/50">
           <CardContent className="pt-6">
             <TooltipProvider delayDuration={0}>
-                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
-                <TypeCard 
-                    label="Multiple Choice" 
-                    value="mcq" 
-                    active={type === "mcq"} 
-                    onClick={() => handleTypeChange("mcq")}
+              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
+                <TypeCard
+                  label="Multiple Choice"
+                  value="mcq"
+                  active={type === "mcq"}
+                  onClick={() => handleTypeChange("mcq")}
                 />
-                <TypeCard 
-                    label="DSA / Coding" 
-                    value="dsa" 
-                    active={type === "dsa"} 
-                    onClick={() => handleTypeChange("dsa")}
-                    // disabled
-                    tooltip="Select for coding challenges"
+                <TypeCard
+                  label="DSA / Coding"
+                  value="dsa"
+                  active={type === "dsa"}
+                  onClick={() => handleTypeChange("dsa")}
+                  // disabled
+                  tooltip="Select for coding challenges"
                 />
-                <TypeCard 
-                    label="Custom Sandbox" 
-                    value="sandbox" 
-                    active={type === "sandbox"} 
-                    onClick={() => {}}
-                    disabled
-                    tooltip="Sandbox environments coming soon!"
+                <TypeCard
+                  label="Custom Sandbox"
+                  value="sandbox"
+                  active={type === "sandbox"}
+                  onClick={() => { }}
+                  disabled
+                  tooltip="Sandbox environments coming soon!"
                 />
-                </div>
+              </div>
             </TooltipProvider>
           </CardContent>
         </Card>
 
         {/* Question Form */}
         <Card className="border-border/50 bg-card">
-            <CardHeader>
-                <CardTitle>Question Details</CardTitle>
-                <CardDescription>Define the core problem statement.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="space-y-2">
-                    <Label htmlFor="question">Question Text</Label>
-                    <RichTextEditor 
-                        value={questionText}
-                        onChange={setQuestionText}
-                        placeholder="Describe the question..."
-                        className="min-h-[200px]"
-                    />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="points">Points</Label>
-                    <Input 
-                        id="points" 
-                        type="number" 
-                        placeholder="10" 
-                        value={points}
-                        onChange={(e) => setPoints(Number(e.target.value))}
-                    />
-                </div>
-                {/* 
+          <CardHeader>
+            <CardTitle>Question Details</CardTitle>
+            <CardDescription>Define the core problem statement.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="question">Question Text</Label>
+              <RichTextEditor
+                value={questionText}
+                onChange={setQuestionText}
+                placeholder="Describe the question..."
+                className="min-h-[200px]"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="points">Points</Label>
+              <Input
+                id="points"
+                type="number"
+                placeholder="10"
+                value={points}
+                onChange={(e) => setPoints(Number(e.target.value))}
+              />
+            </div>
+            {/* 
                 <div className="space-y-2">
                     <Label htmlFor="description">Description (Markdown supported)</Label>
                     <Textarea 
@@ -202,71 +211,140 @@ export function CreateQuestion() {
                     />
                 </div>
                 */}
-            </CardContent>
+          </CardContent>
         </Card>
 
         {/* Options (MCQ Only) */}
         {type === "mcq" && (
-            <Card className="border-border/50 bg-card">
-                <CardHeader>
-                    <CardTitle>Answer Options</CardTitle>
-                    <CardDescription>Select the correct answer(s).</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    {options.map((option, index) => (
-                        <div key={option.id} className="flex items-center gap-3">
-                           <Checkbox 
-                                checked={option.isCorrect}
-                                onCheckedChange={(checked) => handleOptionChange(index, 'isCorrect', checked)}
-                           />
-                           <div className="flex-1">
-                                <Input 
-                                    placeholder={`Option ${option.id}`} 
-                                    value={option.text}
-                                    onChange={(e) => handleOptionChange(index, 'text', e.target.value)}
-                                />
-                           </div>
-                        </div>
-                    ))}
-                </CardContent>
-            </Card>
+          <Card className="border-border/50 bg-card">
+            <CardHeader>
+              <CardTitle>Answer Options</CardTitle>
+              <CardDescription>Select the correct answer(s).</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {options.map((option, index) => (
+                <div key={option.id} className="flex items-center gap-3">
+                  <Checkbox
+                    checked={option.isCorrect}
+                    onCheckedChange={(checked) => handleOptionChange(index, 'isCorrect', checked)}
+                  />
+                  <div className="flex-1">
+                    <Input
+                      placeholder={`Option ${option.id}`}
+                      value={option.text}
+                      onChange={(e) => handleOptionChange(index, 'text', e.target.value)}
+                    />
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Test Cases (DSA Only) */}
+        {type === "dsa" && (
+          <Card className="border-border/50 bg-card">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Test Cases</CardTitle>
+                <CardDescription>Define input/output cases for checking correctness.</CardDescription>
+              </div>
+              <Button
+                onClick={() => setTestCases([...testCases, { input: '', output: '' }])}
+                variant="outline"
+                size="sm"
+                className="cursor-pointer"
+              >
+                + Add Case
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {testCases.map((tc, index) => (
+                <div key={index} className="relative grid gap-4 rounded-lg border border-border p-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Input</Label>
+                    <Textarea
+                      placeholder="Input data..."
+                      value={tc.input}
+                      onChange={(e) => {
+                        const newCases = [...testCases];
+                        newCases[index].input = e.target.value;
+                        setTestCases(newCases);
+                      }}
+                      className="font-mono text-sm"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Expected Output</Label>
+                    <Textarea
+                      placeholder="Expected output..."
+                      value={tc.output}
+                      onChange={(e) => {
+                        const newCases = [...testCases];
+                        newCases[index].output = e.target.value;
+                        setTestCases(newCases);
+                      }}
+                      className="font-mono text-sm"
+                    />
+                  </div>
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    className="absolute -right-2 -top-2 h-6 w-6 rounded-full shadow-sm cursor-pointer"
+                    onClick={() => {
+                      const newCases = testCases.filter((_, i) => i !== index);
+                      setTestCases(newCases);
+                    }}
+                  >
+                    <span className="sr-only">Remove</span>
+                    <span className="text-xs">X</span>
+                  </Button>
+                </div>
+              ))}
+              {testCases.length === 0 && (
+                <div className="flex h-20 items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
+                  No test cases added.
+                </div>
+              )}
+            </CardContent>
+          </Card>
         )}
 
         <div className="flex justify-end gap-3 pt-4">
-             <Button variant="outline" onClick={() => navigate(-1)} className="cursor-pointer">Cancel</Button>
-            <Button className="gap-2 cursor-pointer" onClick={handleSave} disabled={isPending}>
-              {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-              {id ? "Update Question" : "Save Question"}
-            </Button>
+          <Button variant="outline" onClick={() => navigate(-1)} className="cursor-pointer">Cancel</Button>
+          <Button className="gap-2 cursor-pointer" onClick={handleSave} disabled={isPending}>
+            {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+            {id ? "Update Question" : "Save Question"}
+          </Button>
         </div>
       </div>
     </div>
   )
 }
 
-function TypeCard({ 
-    label, 
-    value, 
-    active, 
-    onClick, 
-    disabled, 
-    tooltip 
-}: { 
-    label: string, 
-    value: string, 
-    active: boolean, 
-    onClick: () => void,
-    disabled?: boolean,
-    tooltip?: string
+function TypeCard({
+  label,
+  value,
+  active,
+  onClick,
+  disabled,
+  tooltip
+}: {
+  label: string,
+  value: string,
+  active: boolean,
+  onClick: () => void,
+  disabled?: boolean,
+  tooltip?: string
 }) {
   const CardContent = (
-    <div 
+    <div
       onClick={disabled ? undefined : onClick}
       className={cn(
         "rounded-lg border p-4 text-center transition-all",
-        active 
-            ? 'border-primary bg-primary/5 ring-1 ring-primary' 
-            : 'border-border',
+        active
+          ? 'border-primary bg-primary/5 ring-1 ring-primary'
+          : 'border-border',
         !disabled && "cursor-pointer hover:bg-muted/50",
         disabled && "opacity-50 cursor-not-allowed bg-muted/20"
       )}
@@ -276,16 +354,16 @@ function TypeCard({
   )
 
   if (tooltip) {
-      return (
-        <Tooltip>
-            <TooltipTrigger asChild>
-                {CardContent}
-            </TooltipTrigger>
-            <TooltipContent>
-                <p>{tooltip}</p>
-            </TooltipContent>
-        </Tooltip>
-      )
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          {CardContent}
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>{tooltip}</p>
+        </TooltipContent>
+      </Tooltip>
+    )
   }
 
   return CardContent

@@ -6,12 +6,14 @@ import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm"; // Imported for GFM support
+import Editor from "@monaco-editor/react"; // Imported Monaco Editor
 import {
   Clock,
   ChevronRight,
   ChevronLeft,
   CheckCircle2,
   Check,
+  Play,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -122,6 +124,31 @@ export function ContestAttemptPage() {
     }
   };
 
+  const handleCodeChange = (questionId: string, code: string | undefined) => {
+    if (code === undefined) return;
+    const newAnswers = { ...answers, [questionId]: code };
+    setAnswers(newAnswers);
+    // Debounce save? or just save on Run/Submit? 
+    // Let's save on change for now but maybe needed debouncing.
+    // For simplicity, just updating local state here. 
+    // Real saving can happen on 'Run' or explicit 'Save' or 'Submit'
+    // But to be safe and consistent with MCQ, let's NOT call saveProgress on every keystroke.
+  };
+
+  const handleRunCode = () => {
+    const code = answers[currentQuestion.id];
+    console.log("--- Executing Code ---");
+    console.log("Question ID:", currentQuestion.id);
+    console.log("Code:", code);
+    console.log("Test Cases:", currentQuestion.testCases); // Assuming testCases are in currentQuestion
+
+    // Save progress when running
+    if (id) {
+      saveProgress.mutate({ contestId: id, answers });
+    }
+    toast.info("Code sent to console! (Check logs)");
+  };
+
   const handleNext = () => {
     if (contestData && currentQuestionIndex < contestData.questions.length - 1) {
       // Logic for "Submitting" the question can go here if distinct from selection
@@ -188,6 +215,10 @@ export function ContestAttemptPage() {
   const optionLabels = ['A', 'B', 'C', 'D', 'E', 'F'];
 
   const rank = contestData.submission?.rank ?? "N/A";
+
+  const isDSA = currentQuestion.type === "DSA"; // Assuming implicit type check or field availability
+  // Sometimes naming is 'MCQ' or 'DSA' in DB. Let's assume 'DSA' or Check if options exist?
+  // User said "if the question is dsa". 
 
   return (
     <div className="flex min-h-screen flex-col bg-background font-sans text-foreground transition-colors duration-300">
@@ -256,20 +287,19 @@ export function ContestAttemptPage() {
                 <span className="font-display text-xl font-bold text-foreground">
                   Problem {currentQuestionIndex + 1}
                 </span>
-                <div className="rounded-md bg-muted px-3 py-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  {currentQuestion.points || 10} Points
+                <div className="flex gap-3">
+                  {isDSA && (
+                    <div className="rounded-md bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-3 py-1 text-xs font-bold uppercase tracking-wider">
+                      CODING
+                    </div>
+                  )}
+                  <div className="rounded-md bg-muted px-3 py-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    {currentQuestion.points || 10} Points
+                  </div>
                 </div>
               </div>
 
               <div className="mb-8">
-                {/* 
-                     Switching back to ReactMarkdown with GFM and RehypeRaw to support:
-                     1. Markdown syntax (tables, code blocks, etc)
-                     2. HTML tags (if data comes from RichTextEditor as HTML)
-                     
-                     Note: If the content is PURE HTML without markdown syntax, this still works.
-                     If it's Markdown, this works.
-                 */}
                 <div className="prose prose-sm dark:prose-invert max-w-none font-sans text-foreground/90 sm:prose-base md:prose-lg leading-relaxed [&_pre]:bg-muted [&_pre]:border [&_pre]:border-border [&_code]:bg-muted [&_code]:rounded px-1 [&_code]:font-mono [&_code]:text-primary">
                   <ReactMarkdown
                     rehypePlugins={[rehypeRaw]}
@@ -281,46 +311,77 @@ export function ContestAttemptPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              {currentQuestion.options.map((option: any, idx: number) => {
-                const isSelected = answers[currentQuestion.id] === option.id;
-
-                return (
-                  <div
-                    key={option.id}
-                    onClick={() => handleOptionSelect(currentQuestion.id, option.id)}
-                    className={cn(
-                      "group relative flex cursor-pointer items-start gap-4 rounded-xl border-2 p-5 transition-all duration-200 ease-in-out",
-                      isSelected
-                        ? "border-primary bg-primary/5 shadow-[0_0_0_1px_rgba(var(--primary),1)]"
-                        : "border-border bg-card hover:border-primary/50 hover:bg-accent"
-                    )}
+            {/* Content Area: MCQ Options OR Code Editor */}
+            {isDSA ? (
+              <div className="space-y-4">
+                <div className="h-[400px] overflow-hidden rounded-xl border-2 border-border shadow-sm">
+                  <Editor
+                    height="100%"
+                    defaultLanguage="javascript"
+                    defaultValue="// Write your code here"
+                    theme="vs-dark" // Automatic theme switching would be better but keeping simple
+                    value={answers[currentQuestion.id] || ""}
+                    onChange={(val) => handleCodeChange(currentQuestion.id, val)}
+                    options={{
+                      minimap: { enabled: false },
+                      fontSize: 14,
+                      scrollBeyondLastLine: false,
+                      automaticLayout: true,
+                    }}
+                  />
+                </div>
+                <div className="flex justify-end">
+                  <Button
+                    onClick={handleRunCode}
+                    className="bg-green-600 hover:bg-green-700 text-white font-bold gap-2"
                   >
-                    <div className={cn(
-                      "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold transition-colors",
-                      isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground group-hover:bg-primary/20 group-hover:text-primary"
-                    )}>
-                      {optionLabels[idx]}
-                    </div>
+                    <Play className="h-4 w-4" />
+                    Run Code
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                {currentQuestion.options?.map((option: any, idx: number) => {
+                  const isSelected = answers[currentQuestion.id] === option.id;
 
-                    <div className="flex-1 pt-1">
-                      <span className={cn(
-                        "text-base font-medium leading-relaxed",
-                        isSelected ? "text-foreground" : "text-card-foreground"
+                  return (
+                    <div
+                      key={option.id}
+                      onClick={() => handleOptionSelect(currentQuestion.id, option.id)}
+                      className={cn(
+                        "group relative flex cursor-pointer items-start gap-4 rounded-xl border-2 p-5 transition-all duration-200 ease-in-out",
+                        isSelected
+                          ? "border-primary bg-primary/5 shadow-[0_0_0_1px_rgba(var(--primary),1)]"
+                          : "border-border bg-card hover:border-primary/50 hover:bg-accent"
+                      )}
+                    >
+                      <div className={cn(
+                        "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold transition-colors",
+                        isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground group-hover:bg-primary/20 group-hover:text-primary"
                       )}>
-                        {option.text}
-                      </span>
-                    </div>
-
-                    {isSelected && (
-                      <div className="absolute right-5 top-5 text-primary">
-                        <CheckCircle2 className="h-6 w-6 fill-primary/10" />
+                        {optionLabels[idx]}
                       </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+
+                      <div className="flex-1 pt-1">
+                        <span className={cn(
+                          "text-base font-medium leading-relaxed",
+                          isSelected ? "text-foreground" : "text-card-foreground"
+                        )}>
+                          {option.text}
+                        </span>
+                      </div>
+
+                      {isSelected && (
+                        <div className="absolute right-5 top-5 text-primary">
+                          <CheckCircle2 className="h-6 w-6 fill-primary/10" />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
             <div className="mt-12 flex items-center justify-between border-t-2 border-dashed border-border pt-8">
               {/* Previous Button is Disabled/Hidden as per requirement */}

@@ -43,4 +43,6 @@ app.use(
     res.status(status).json({ success: false, error: errorMessage });
   }
 );
-app.listen(PORT);
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});

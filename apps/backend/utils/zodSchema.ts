@@ -24,6 +24,11 @@ export const optionSchema = z.object({
   text: z.string(),
   isCorrect: z.boolean(),
 });
+export const testSchema = z.object({
+  questionId: z.string().optional(),
+  input: z.string(),
+  output: z.string(),
+});
 
 export const createQuestionSchema = z
   .object({
@@ -32,6 +37,7 @@ export const createQuestionSchema = z
     points: z.number(),
 
     options: z.array(optionSchema).optional(),
+    testCases: z.array(testSchema).optional(),
   })
   .superRefine((data, ctx) => {
     if (data.type === "MCQ") {
@@ -42,6 +48,13 @@ export const createQuestionSchema = z
           code: "custom",
         });
       }
+    }
+    else if (data.type === "DSA" && (!data.testCases || data.testCases.length < 1)) {
+      ctx.addIssue({
+        path: ["testCases"],
+        message: "Test cases are required for DSA questions",
+        code: "custom",
+      });
     }
   });
 

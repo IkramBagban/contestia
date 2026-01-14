@@ -103,32 +103,32 @@ export const updateQuestion = async (
 
     let question;
     if (type === "MCQ") {
-        await prismaClient.option.deleteMany({
-            where: { questionId: id }
-        });
+      await prismaClient.option.deleteMany({
+        where: { questionId: id }
+      });
 
-        const sanitizedOptions = options?.map((opt) => ({
-            text: opt.text,
-            isCorrect: opt.isCorrect,
-        }));
+      const sanitizedOptions = options?.map((opt) => ({
+        text: opt.text,
+        isCorrect: opt.isCorrect,
+      }));
 
-        question = await prismaClient.question.update({
-            where: { id },
-            data: {
-                text,
-                points,
-                type,
-                options: {
-                    create: sanitizedOptions
-                }
-            },
-            include: { options: true }
-        });
+      question = await prismaClient.question.update({
+        where: { id },
+        data: {
+          text,
+          points,
+          type,
+          options: {
+            create: sanitizedOptions
+          }
+        },
+        include: { options: true }
+      });
     } else {
-        question = await prismaClient.question.update({
-            where: { id },
-            data: { text, points, type },
-        });
+      question = await prismaClient.question.update({
+        where: { id },
+        data: { text, points, type },
+      });
     }
 
     res.status(200).json({
@@ -147,9 +147,9 @@ export const createQuestion = async (
 ) => {
   try {
     const schemaResult = createQuestionSchema.safeParse(req.body);
-    
+
     if (!schemaResult.success) {
-      console.log("body" , req.body);
+      console.log("body", req.body);
       const error = new Error(
         "Validation Error: " + JSON.stringify(schemaResult.error.flatten())
       );
@@ -158,9 +158,15 @@ export const createQuestion = async (
       throw error;
     }
 
-    const { type, text, points, options } = schemaResult.data;
+    const { type, text, points, options, testCases } = schemaResult.data;
     console.log("schemaResult.data", schemaResult.data)
     let question = null;
+    const contestData = {
+      type: type,
+      text: text,
+      points: points,
+      userId: req.user!.id,
+    }
     if (type === "MCQ") {
       const sanitizedOptions = options?.map((opt) => ({
         text: opt.text,
@@ -168,10 +174,7 @@ export const createQuestion = async (
       }));
       question = await prismaClient.question.create({
         data: {
-          type: type,
-          text: text,
-          points: points,
-          userId: req.user!.id,
+          ...contestData,
           options: {
             create: sanitizedOptions,
           },
@@ -181,10 +184,22 @@ export const createQuestion = async (
         },
       });
     } else {
-      res
-        .status(200)
-        .json({ success: true, message: "DSA type is coming soon", data: [] });
-      return;
+      const sanitizedTestCases = testCases?.map((tc) => ({
+        input: tc.input,
+        output: tc.output,
+      }));
+      question = await prismaClient.question.create({
+        data: {
+          ...contestData,
+          testCases: {
+            create: sanitizedTestCases,
+          },
+        },
+        include: {
+          testCases: true,
+        },
+      })
+      console.log("question", question)
     }
 
     res.status(201).json({

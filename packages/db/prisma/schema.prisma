@@ -18,10 +18,10 @@ model User {
   email    String @unique
   password String
 
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  contests  Contest[]
-  questions Question[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  contests    Contest[]
+  questions   Question[]
   submissions Submission[]
 
   @@index([email])
@@ -40,8 +40,8 @@ model Contest {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  questions QuestionsInContests[]
-  user      User                  @relation(fields: [userId], references: [id])
+  questions   QuestionsInContests[]
+  user        User                  @relation(fields: [userId], references: [id])
   submissions Submission[]
 }
 
@@ -58,8 +58,8 @@ model Question {
   points Int
   userId String
 
-  options Option[] // in case of mcq
-  // testCases in case of dsa
+  options   Option[] // in case of mcq
+  testCases Testcase[] // in case of dsa
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -91,19 +91,30 @@ model Option {
   createdAt DateTime @default(now())
 }
 
+model Testcase {
+  id         String @id @default(uuid())
+  questionId String
+  input      String
+  output     String
+
+  question Question @relation(fields: [questionId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
 enum SubmissionStatus {
   PENDING
   COMPLETED
 }
 
 model Submission {
-  id        String           @id @default(uuid())
-  userId    String
-  contestId String
-  score     Int              @default(0)
-  status    SubmissionStatus @default(PENDING)
-  answers   Json             
-  startedAt DateTime         @default(now())
+  id          String           @id @default(uuid())
+  userId      String
+  contestId   String
+  score       Int              @default(0)
+  status      SubmissionStatus @default(PENDING)
+  answers     Json
+  startedAt   DateTime         @default(now())
   submittedAt DateTime?
 
   user    User    @relation(fields: [userId], references: [id])
@@ -111,7 +122,6 @@ model Submission {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   @@unique([userId, contestId])
 }
-
