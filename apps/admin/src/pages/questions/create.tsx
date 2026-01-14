@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils"
 import { useCreateQuestion, useQuestion, useUpdateQuestion } from "@/hooks/use-queries"
 import { toast } from "sonner"
 
+import { RichTextEditor } from "@/components/ui/rich-text-editor"
+
 export function CreateQuestion() {
   const navigate = useNavigate()
   const { id } = useParams()
@@ -22,8 +24,8 @@ export function CreateQuestion() {
   const updateQuestion = useUpdateQuestion()
   const { data: existingQuestion, isLoading: isLoadingQuestion } = useQuestion(id || "")
 
-  const [title, setTitle] = useState("")
-  const [description, setDescription] = useState("")
+  const [questionText, setQuestionText] = useState("")
+  // const [description, setDescription] = useState("")
   const [points, setPoints] = useState(10)
   const [options, setOptions] = useState([
     { id: 'A', text: '', isCorrect: false },
@@ -45,10 +47,8 @@ export function CreateQuestion() {
 
   useEffect(() => {
     if (existingQuestion) {
-      // Split title and description from text if possible, or just set title
-      const parts = existingQuestion.text.split("\n\n")
-      setTitle(parts[0])
-      setDescription(parts.slice(1).join("\n\n"))
+      // Use full text for the rich text editor
+      setQuestionText(existingQuestion.text)
       setPoints(existingQuestion.points)
       
       if (existingQuestion.type === 'MCQ' && existingQuestion.options) { // Assuming options are returned
@@ -81,7 +81,8 @@ export function CreateQuestion() {
   }
 
   const handleSave = () => {
-    const text = description ? `${title}\n\n${description}` : title
+    // const text = description ? `${title}\n\n${description}` : title
+    const text = questionText
 
     const payload = {
         type: type === 'mcq' ? 'MCQ' : 'DSA',
@@ -171,12 +172,12 @@ export function CreateQuestion() {
             </CardHeader>
             <CardContent className="space-y-4">
                 <div className="space-y-2">
-                    <Label htmlFor="title">Question Title</Label>
-                    <Input 
-                        id="title" 
-                        placeholder="e.g. React Hook Rules" 
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
+                    <Label htmlFor="question">Question Text</Label>
+                    <RichTextEditor 
+                        value={questionText}
+                        onChange={setQuestionText}
+                        placeholder="Describe the question..."
+                        className="min-h-[200px]"
                     />
                 </div>
                 <div className="space-y-2">
@@ -189,6 +190,7 @@ export function CreateQuestion() {
                         onChange={(e) => setPoints(Number(e.target.value))}
                     />
                 </div>
+                {/* 
                 <div className="space-y-2">
                     <Label htmlFor="description">Description (Markdown supported)</Label>
                     <Textarea 
@@ -199,6 +201,7 @@ export function CreateQuestion() {
                         onChange={(e) => setDescription(e.target.value)}
                     />
                 </div>
+                */}
             </CardContent>
         </Card>
 

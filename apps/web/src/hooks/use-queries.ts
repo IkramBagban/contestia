@@ -48,7 +48,7 @@ export function useMe() {
 export function useContests() {
   return useQuery({
     queryKey: ['contests'],
-    queryFn: () => api.get('/contests').then(res => res.data.data),
+    queryFn: () => api.get('/contests?limit=50').then(res => res.data.data),
   });
 }
 
@@ -71,6 +71,13 @@ export function useSubmitContest() {
     return useMutation({
         mutationFn: ({ contestId, answers }: { contestId: string, answers: any }) => 
             api.post(`/contests/${contestId}/submit`, { answers }).then(res => res.data.data),
+    });
+}
+
+export function useSaveProgress() {
+    return useMutation({
+        mutationFn: ({ contestId, answers }: { contestId: string, answers: any }) => 
+            api.put(`/contests/${contestId}/progress`, { answers }).then(res => res.data),
     });
 }
 

@@ -10,6 +10,7 @@ import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { useCreateContest, useQuestions, useContest, useUpdateContest } from "@/hooks/use-queries"
 import { toast } from "sonner"
+import { RichTextEditor } from "@/components/ui/rich-text-editor"
 
 export function CreateContest() {
   const navigate = useNavigate()
@@ -154,11 +155,11 @@ export function CreateContest() {
           
           <div className="space-y-2">
             <Label>Description</Label>
-            <Textarea 
-              placeholder="Rules, prizes, and specific instructions..." 
-              className="h-32 font-sans" 
+            <RichTextEditor
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={setDescription}
+              placeholder="Rules, prizes, and specific instructions..."
+              className="min-h-[200px]"
             />
           </div>
 
