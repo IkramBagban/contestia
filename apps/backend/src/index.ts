@@ -8,8 +8,16 @@ import authRouter from "./routes/auth.route";
 import contestRouter from "./routes/contest.route";
 import questionRouter from "./routes/question.route";
 import cookieParser from "cookie-parser";
+import { createServer } from 'http'
+import { WebSocketServer } from "ws";
+import websocketHandler from "./services/ws";
 const PORT = process.env.PORT || 3000;
 const app = express();
+
+const server = createServer(app)
+
+const wss = new WebSocketServer({ server })
+wss.on("connection", websocketHandler)
 
 app.use(express.json());
 app.use(
@@ -43,6 +51,6 @@ app.use(
     res.status(status).json({ success: false, error: errorMessage });
   }
 );
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
