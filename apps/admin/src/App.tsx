@@ -5,6 +5,7 @@ import { DashboardLayout } from './components/layouts/dashboard-layout'
 import { DashboardHome } from './pages/dashboard/home'
 import { ContestsList } from './pages/contests/list'
 import { CreateContest } from './pages/contests/create'
+import { ContestDetail } from './pages/contests/detail'
 import { CreateQuestion } from './pages/questions/create'
 
 import { QuestionsList } from './pages/questions/list'
@@ -17,12 +18,13 @@ function App() {
       <Routes>
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/login" element={<LoginPage />} />
-        
+
         {/* Protected Routes */}
         <Route path="/" element={<DashboardLayout />}>
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<DashboardHome />} />
           <Route path="contests" element={<ContestsList />} />
+          <Route path="contests/:id" element={<ContestDetail />} />
           <Route path="contests/new" element={<CreateContest />} />
           <Route path="contests/edit/:id" element={<CreateContest />} />
           <Route path="questions" element={<QuestionsList />} />

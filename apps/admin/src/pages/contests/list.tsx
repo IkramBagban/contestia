@@ -21,30 +21,21 @@ export function ContestsList() {
   // if (error) return <div>Error loading contests</div> // Handle error gracefully or use boundary
 
   const now = new Date()
-  
+
   const activeContests = contests.filter(c => {
-    const start = new Date(c.startDate) 
-    const end = new Date(c.endTime)
-    // assuming startTime/endTime field names in api response are what I saw in controller.
-    // wait, controller selected: startDate, startTime, endTime.
-    // The controller is returning string for dates.
-    // Actually, startDate is Date object in Prisma, but JSON is string.
-    // Logic: if start <= now && end >= now.
-    // BUT, backend returns 'startDate' (Date), 'startTime' (String), 'endTime' (String). 
-    // This is confusing schema in backend. "startDate" is a Date, "startTime" is string?
-    // Let's assume startDate contains the date part and startTime contains time? Or startDate is a full datetime?
-    // Looking at schema: startDate: z.date(), startTime: z.string(), endTime: z.string().
-    // If startDate is DateTime@db, it has time. 
-    // I will try to use `startDate` as the start datetime, and `endTime` as end datetime/string.
-    // Ideally I should inspect the real data, but I'll assume they are parsable dates.
-    // Fallback: just list all in 'active' if specific logic fails, or grouping them roughly.
-    // Let's try to parse `endTime` string.
-    const endDate = new Date(c.endTime)
-    return start <= now && endDate >= now
+    const { start, end } = getContestDates(c)
+    return start <= now && end >= now
   })
-  
-  const upcomingContests = contests.filter(c => new Date(c.startDate) > now)
-  const pastContests = contests.filter(c => new Date(c.endTime) < now)
+
+  const upcomingContests = contests.filter(c => {
+    const { start } = getContestDates(c)
+    return start > now
+  })
+
+  const pastContests = contests.filter(c => {
+    const { end } = getContestDates(c)
+    return end < now
+  })
 
   return (
     <div className="space-y-6">
@@ -61,19 +52,19 @@ export function ContestsList() {
 
       <Tabs defaultValue="all" className="space-y-4">
         <div className="w-full overflow-x-auto pb-2">
-            <TabsList>
+          <TabsList>
             <TabsTrigger value="all">All ({contests.length})</TabsTrigger>
             <TabsTrigger value="active">Active ({activeContests.length})</TabsTrigger>
             <TabsTrigger value="upcoming">Upcoming ({upcomingContests.length})</TabsTrigger>
             <TabsTrigger value="past">Past ({pastContests.length})</TabsTrigger>
-            </TabsList>
+          </TabsList>
         </div>
-        
+
         <TabsContent value="all" className="space-y-4">
           <ContestTable contests={contests} showEdit />
         </TabsContent>
         <TabsContent value="active" className="space-y-4">
-          <ContestTable contests={activeContests} showEdit />
+          <ContestTable contests={activeContests} showEdit showLeaderboard />
         </TabsContent>
         <TabsContent value="upcoming" className="space-y-4">
           <ContestTable contests={upcomingContests} showEdit />
@@ -86,14 +77,14 @@ export function ContestsList() {
   )
 }
 
-function ContestTable({ 
-  contests, 
-  showEdit = false, 
-  showLeaderboard = false 
-}: { 
-  contests: Contest[], 
-  showEdit?: boolean, 
-  showLeaderboard?: boolean 
+function ContestTable({
+  contests,
+  showEdit = false,
+  showLeaderboard = false
+}: {
+  contests: Contest[],
+  showEdit?: boolean,
+  showLeaderboard?: boolean
 }) {
   const navigate = useNavigate()
   return (
@@ -112,7 +103,7 @@ function ContestTable({
         <TableBody>
           {contests.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+              <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                 No contests found.
               </TableCell>
             </TableRow>
@@ -121,32 +112,42 @@ function ContestTable({
               <TableRow key={contest.id || i} className="border-border/50 hover:bg-muted/50">
                 <TableCell className="font-medium font-sans">{contest.title}</TableCell>
                 <TableCell className="font-mono text-xs text-muted-foreground">
-                  {new Date(contest.startDate).toLocaleString()}
+                  {new Date(contest.startDate).toLocaleDateString()} {contest.startTime}
                 </TableCell>
                 <TableCell className="font-mono">{contest.totalPoints || 0}</TableCell>
-                <TableCell className="font-mono text-muted-foreground">-</TableCell> 
+                <TableCell className="font-mono text-muted-foreground">-</TableCell>
                 {/* Participants not in API response yet */}
                 <TableCell>
                   <StatusBadge contest={contest} />
                 </TableCell>
                 <TableCell className="text-right space-x-2">
                   {showEdit && (
-                    <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-8 w-8 p-0 cursor-pointer"
-                        onClick={() => contest.id && navigate(`/contests/edit/${contest.id}`)}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 cursor-pointer"
+                      onClick={() => contest.id && navigate(`/contests/edit/${contest.id}`)}
                     >
                       <Edit2 className="h-4 w-4 text-muted-foreground" />
                     </Button>
                   )}
                   {showLeaderboard && (
-                    <Button variant="outline" size="sm" className="gap-2 text-xs">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2 text-xs"
+                      onClick={() => contest.id && navigate(`/contests/${contest.id}`)}
+                    >
                       <Trophy className="h-3 w-3" />
                       Leaderboard
                     </Button>
                   )}
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={() => contest.id && navigate(`/contests/${contest.id}`)}
+                  >
                     <Eye className="h-4 w-4 text-muted-foreground" />
                   </Button>
                 </TableCell>
@@ -161,8 +162,8 @@ function ContestTable({
 
 function StatusBadge({ contest }: { contest: Contest }) {
   const now = new Date()
-  const start = new Date(contest.startDate)
-  const end = new Date(contest.endTime)
+  const { start, end } = getContestDates(contest)
+
   let status = 'upcoming'
   if (now > end) status = 'past'
   else if (now >= start && now <= end) status = 'active'
@@ -189,4 +190,27 @@ function StatusBadge({ contest }: { contest: Contest }) {
       {label}
     </Badge>
   )
+}
+
+function getContestDates(contest: Contest) {
+  const date = new Date(contest.startDate);
+
+  const start = new Date(date);
+  if (contest.startTime) {
+    const [sH, sM] = contest.startTime.split(':').map(Number);
+    if (!isNaN(sH)) start.setHours(sH, sM || 0, 0, 0);
+  } else {
+    start.setHours(0, 0, 0, 0);
+  }
+
+  const end = new Date(date);
+  if (contest.endTime) {
+    const [eH, eM] = contest.endTime.split(':').map(Number);
+    if (!isNaN(eH)) end.setHours(eH, eM || 0, 0, 0);
+    else end.setHours(23, 59, 59, 999); // Default to end of day?
+  } else {
+    end.setHours(23, 59, 59, 999);
+  }
+
+  return { start, end };
 }
