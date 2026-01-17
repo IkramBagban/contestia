@@ -14,8 +14,15 @@ import {
   CheckCircle2,
   Check,
   Play,
+  Trophy
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { RealtimeLeaderboard } from "@/components/domain/leaderboard/realtime-leaderboard";
 
 export function ContestAttemptPage() {
   const { id } = useParams<{ id: string }>();
@@ -29,6 +36,8 @@ export function ContestAttemptPage() {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [currentScore, setCurrentScore] = useState(0);
+
+
 
   // Load saved answers from backend or local storage on mount
   useEffect(() => {
@@ -101,18 +110,17 @@ export function ContestAttemptPage() {
     }
   }, [contestData]);
 
-  const handleOptionSelect = (questionId: string, optionId: string) => {
-    // Determine if we can still change the answer? 
-    // "User should not be able to go to previous question once submit". 
-    // Usually implies once they leave the question, it's submitted.
-    // While ON the question, they can change it.
+  const saveCurrentAnswer = () => {
+    if (!contestData || !id) return;
+    const currentQ = contestData.questions[currentQuestionIndex].question;
+    const answer = answers[currentQ.id];
 
-    const newAnswers = { ...answers, [questionId]: optionId };
-    setAnswers(newAnswers);
-
-    if (id) {
+    // Only save if we have an answer. 
+    // Optimization: Check if answer differs from saved? 
+    // For now, save if exists to be safe and simple.
+    if (answer !== undefined) {
       saveProgress.mutate(
-        { contestId: id, answers: newAnswers },
+        { contestId: id, questionId: currentQ.id, answer },
         {
           onSuccess: (data: any) => {
             if (data?.data?.score !== undefined) {
@@ -124,46 +132,49 @@ export function ContestAttemptPage() {
     }
   };
 
+  const handleOptionSelect = (questionId: string, optionId: string) => {
+    const newAnswers = { ...answers };
+    if (newAnswers[questionId] === optionId) {
+      delete newAnswers[questionId];
+    } else {
+      newAnswers[questionId] = optionId;
+    }
+    setAnswers(newAnswers);
+    // Auto-save is handled on navigation (Next/Prev/Jump) as per user request
+  };
+
   const handleCodeChange = (questionId: string, code: string | undefined) => {
     if (code === undefined) return;
     const newAnswers = { ...answers, [questionId]: code };
     setAnswers(newAnswers);
-    // Debounce save? or just save on Run/Submit? 
-    // Let's save on change for now but maybe needed debouncing.
-    // For simplicity, just updating local state here. 
-    // Real saving can happen on 'Run' or explicit 'Save' or 'Submit'
-    // But to be safe and consistent with MCQ, let's NOT call saveProgress on every keystroke.
   };
 
   const handleRunCode = () => {
     const code = answers[currentQuestion.id];
-    console.log("--- Executing Code ---");
-    console.log("Question ID:", currentQuestion.id);
-    console.log("Code:", code);
-    console.log("Test Cases:", currentQuestion.testCases); // Assuming testCases are in currentQuestion
-
-    // Save progress when running
     if (id) {
-      saveProgress.mutate({ contestId: id, answers });
+      saveProgress.mutate({ contestId: id, questionId: currentQuestion.id, answer: code });
     }
-    toast.info("Code sent to console! (Check logs)");
   };
 
   const handleNext = () => {
+    saveCurrentAnswer();
     if (contestData && currentQuestionIndex < contestData.questions.length - 1) {
-      // Logic for "Submitting" the question can go here if distinct from selection
-      // For now, moving to next effectively locks the previous one in the UI.
       setCurrentQuestionIndex((prev) => prev + 1);
     }
   };
 
   const handlePrev = () => {
-    // User requested: "user should not be able to go to previous question once submit"
-    // So we disable this. Left here just in case logic changes, but UI will hide/disable it.
+    saveCurrentAnswer();
     if (currentQuestionIndex > 0) {
       setCurrentQuestionIndex((prev) => prev - 1);
     }
   };
+
+  const handleJumpToQuestion = (index: number) => {
+    if (index === currentQuestionIndex) return;
+    saveCurrentAnswer();
+    setCurrentQuestionIndex(index);
+  }
 
   const handleSubmit = () => {
     if (!id) return;
@@ -220,6 +231,17 @@ export function ContestAttemptPage() {
   // Sometimes naming is 'MCQ' or 'DSA' in DB. Let's assume 'DSA' or Check if options exist?
   // User said "if the question is dsa". 
 
+  // Calculate status for Leaderboard
+  const now = new Date();
+  const startDate = new Date(contestData.startDate);
+  const [endH, endM] = contestData.endTime.split(":").map(Number);
+  const endDate = new Date(startDate);
+  endDate.setHours(endH, endM, 0, 0);
+
+  let contestStatus: "UPCOMING" | "LIVE" | "PAST" = "LIVE"; // Default to LIVE if attempting
+  if (now > endDate) contestStatus = "PAST";
+  if (now < startDate) contestStatus = "UPCOMING";
+
   return (
     <div className="flex min-h-screen flex-col bg-background font-sans text-foreground transition-colors duration-300">
 
@@ -230,12 +252,6 @@ export function ContestAttemptPage() {
           {/* Left: Title & Rank */}
           <div className="flex items-center gap-4 sm:gap-6">
             <h1 className="hidden font-display text-lg font-bold text-foreground sm:block">{contestData.title}</h1>
-
-            {/* Rank Box */}
-            <div className="flex items-center rounded-lg border-2 border-foreground bg-card px-3 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:shadow-[2px_2px_0px_0px_rgba(255,255,255,1)]">
-              <span className="mr-2 font-display text-sm font-bold text-muted-foreground">Rank:</span>
-              <span className="font-mono text-base font-bold text-foreground">{rank}</span>
-            </div>
           </div>
 
           {/* Center: Timer */}
@@ -252,10 +268,25 @@ export function ContestAttemptPage() {
 
           {/* Right: Score & Submit */}
           <div className="flex items-center gap-4">
-            <div className="hidden items-center gap-2 sm:flex">
-              <span className="font-display text-sm font-bold text-muted-foreground">Score:</span>
-              <span className="font-mono text-lg font-bold text-primary">{currentScore}</span>
-            </div>
+            <Sheet>
+              <SheetTrigger asChild>
+                <div className="hidden items-center gap-2 sm:flex cursor-pointer hover:scale-105 active:scale-95 transition-transform rounded-md p-1 hover:bg-muted/50" title="Click to view Leaderboard">
+                  <span className="font-display text-sm font-bold text-muted-foreground">Score:</span>
+                  <span className="font-mono text-lg font-bold text-primary">{currentScore}</span>
+                </div>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-full sm:w-[600px] sm:max-w-xl p-0">
+                <div className="h-full flex flex-col pt-10 px-6">
+                  <h2 className="text-2xl font-display font-bold mb-6 flex items-center gap-2">
+                    <Trophy className="h-6 w-6 text-yellow-500" />
+                    Live Leaderboard
+                  </h2>
+                  <div className="flex-1 overflow-hidden">
+                    <RealtimeLeaderboard contestId={id || ""} compact={true} contestStatus={contestStatus} />
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
 
             <Button
               onClick={handleSubmit}
@@ -386,9 +417,13 @@ export function ContestAttemptPage() {
             <div className="mt-12 flex items-center justify-between border-t-2 border-dashed border-border pt-8">
               {/* Previous Button is Disabled/Hidden as per requirement */}
               <Button
-                variant="ghost"
-                disabled={true}
-                className="gap-2 text-muted-foreground opacity-50 cursor-not-allowed"
+                variant="outline"
+                onClick={handlePrev}
+                disabled={currentQuestionIndex === 0}
+                className={cn(
+                  "gap-2 border-2",
+                  currentQuestionIndex === 0 ? "opacity-50 cursor-not-allowed" : "hover:bg-accent hover:text-accent-foreground"
+                )}
               >
                 <ChevronLeft className="h-4 w-4" />
                 Previous
@@ -411,7 +446,7 @@ export function ContestAttemptPage() {
         </div>
 
         {/* 3. Right Panel: Progress Tracker - Sketch Style */}
-        <div className="lg:col-span-3">
+        <div className="lg:col-span-3 order-first lg:order-last mb-6 lg:mb-0">
           <div className="sticky top-24 rounded-xl border-2 border-foreground bg-card p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]">
             <div className="mb-6 flex items-center justify-between border-b-2 border-border pb-4">
               <h3 className="font-display font-bold text-foreground">Progress</h3>
@@ -420,44 +455,29 @@ export function ContestAttemptPage() {
               </span>
             </div>
 
-            <div className="grid grid-cols-4 gap-3 sm:grid-cols-5 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-5 gap-2 sm:grid-cols-8 lg:grid-cols-3 xl:grid-cols-4">
               {contestData.questions.map((q: any, idx: number) => {
                 const questionId = q.question.id;
                 const isAnswered = !!answers[questionId];
                 const isCurrent = currentQuestionIndex === idx;
-                const isLocked = idx < currentQuestionIndex; // Locked if we passed it
 
                 return (
                   <button
                     key={questionId}
-                    onClick={() => {
-                      // Only allow clicking if it's the current one (redundant) or simplified: 
-                      // Disable clicking past questions.
-                      // Actually, disable clicking ANY question? 
-                      // "user should not be able to go to previous question"
-                      // Can they go forward without answering? "Next" handles that.
-                      // Can they jump forward? The Requirement says "one question... click on next... submit".
-                      // This implies Linear/Sequential navigation.
-                      // So we should disable ALL click navigation on the tracker. It just acts as a visualizer.
-                    }}
-                    disabled={true}
+                    onClick={() => handleJumpToQuestion(idx)}
                     className={cn(
-                      "flex aspect-square items-center justify-center rounded-lg border-2 text-sm font-bold transition-all cursor-default",
+                      "flex aspect-square items-center justify-center rounded-lg border-2 text-sm font-bold transition-all hover:scale-105 active:scale-95",
                       isCurrent
                         ? "border-primary bg-primary text-primary-foreground shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:shadow-[2px_2px_0px_0px_rgba(255,255,255,1)] -translate-y-1"
                         : isAnswered
-                          ? "border-green-500 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 opacity-80"
-                          : "border-border bg-card text-muted-foreground opacity-50"
+                          ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-500/50 dark:bg-blue-900/20 dark:text-blue-400 opacity-100"
+                          : "border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground"
                     )}
                   >
                     {isAnswered ? (
-                      <Check className="h-5 w-5" />
+                      <Check className="h-4 w-4 sm:h-5 sm:w-5" />
                     ) : (
                       idx + 1
-                    )}
-                    {isLocked && !isAnswered && (
-                      // Show lock for skipped?
-                      <span className="absolute text-[8px] text-red-500">X</span>
                     )}
                   </button>
                 )
@@ -470,15 +490,9 @@ export function ContestAttemptPage() {
                 <span>Current Problem</span>
               </div>
               <div className="flex items-center gap-3 text-xs font-bold text-muted-foreground">
-                <div className="h-3 w-3 rounded-sm border-2 border-green-500 bg-green-100 dark:bg-green-900/30"></div>
-                <span>Solved (Locked)</span>
+                <div className="h-3 w-3 rounded-sm border-2 border-blue-500 bg-blue-50 dark:bg-blue-900/20"></div>
+                <span>Answered</span>
               </div>
-              {/* 
-                <div className="flex items-center gap-3 text-xs font-bold text-muted-foreground">
-                    <div className="h-3 w-3 rounded-sm border-2 border-border bg-card"></div>
-                    <span>Unsolved</span>
-                </div>
-                */}
             </div>
           </div>
         </div>
