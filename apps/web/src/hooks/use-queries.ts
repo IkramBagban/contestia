@@ -75,9 +75,13 @@ export function useSubmitContest() {
 }
 
 export function useSaveProgress() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ contestId, questionId, answer }: { contestId: string; questionId: string; answer: any }) =>
       api.put(`/contests/${contestId}/progress`, { questionId, answer }).then(res => res.data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['contest-attempt', variables.contestId] });
+    }
   });
 }
 
@@ -121,8 +125,12 @@ export function useRunCode() {
 }
 
 export function useSubmitCode() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ languageId, code, questionId, contestId }: { languageId: number; code: string; questionId: string; contestId: string }) =>
       api.post<RunCodeResult & { score?: number; pointsEarned: number; submitted: boolean }>('/judge0/submit-code', { languageId, code, questionId, contestId }).then(res => res.data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['contest-attempt', variables.contestId] });
+    }
   });
 }

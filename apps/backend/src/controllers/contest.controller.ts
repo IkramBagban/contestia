@@ -474,20 +474,30 @@ export const saveProgress = async (
     let points = 0;
     let isCorrect = false;
 
+    const currentAnswersMap = (submission.answers as Record<string, any>) || {};
+    const existingEntry = currentAnswersMap[questionId];
+
     if (questionData.type === "MCQ") {
       const correctOption = questionData.options.find(o => o.isCorrect);
       if (correctOption && correctOption.id === answer) {
         points = questionData.points;
         isCorrect = true;
       }
+    } else {
+      const wasAlreadySolved = existingEntry && typeof existingEntry === 'object' && existingEntry.isCorrect === true;
+      if (wasAlreadySolved) {
+        isCorrect = true;
+        points = (existingEntry as any).points || questionData.points;
+      }
     }
-
-    const currentAnswersMap = (submission.answers as Record<string, any>) || {};
 
     const newAnswerEntry = {
       value: answer,
       isCorrect,
-      points
+      points,
+      ...(questionData.type === "DSA" ? {
+        languageId: (existingEntry && typeof existingEntry === 'object') ? existingEntry.languageId : undefined
+      } : {})
     };
 
     const updatedAnswers = {
@@ -496,11 +506,15 @@ export const saveProgress = async (
     };
 
     let totalScore = 0;
-    Object.values(updatedAnswers).forEach((entry: any) => {
-      if (entry && typeof entry === 'object' && typeof entry.points === 'number') {
-        totalScore += entry.points;
+    for (const key in updatedAnswers) {
+      const entry = (updatedAnswers as any)[key];
+      if (entry && typeof entry === 'object') {
+        const p = parseInt(String(entry.points), 10);
+        if (!isNaN(p) && entry.isCorrect === true) {
+          totalScore += p;
+        }
       }
-    });
+    }
 
     const updatedSubmission = await prismaClient.submission.update({
       where: { id: submission.id },

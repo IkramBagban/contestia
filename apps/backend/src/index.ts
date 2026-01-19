@@ -35,7 +35,7 @@ app.use(cookieParser());
 app.use("/auth", authRouter);
 app.use("/contests", contestRouter);
 app.use("/questions", questionRouter);
-app.use("/simulation", simulationRouter);
+// app.use("/simulation", simulationRouter);
 app.use("/judge0", judge0Router);
 
 app.get("/", (req, res) => {

@@ -13,10 +13,9 @@ loader.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/
 
 import {
   Clock,
-  ChevronRight,
-  ChevronLeft,
   CheckCircle2,
   Check,
+  X,
   Play,
   Trophy
 } from "lucide-react";
@@ -43,7 +42,7 @@ export function ContestAttemptPage() {
     const val = parseInt(qParam || "0", 10);
     return isNaN(val) ? 0 : val;
   });
-  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [answers, setAnswers] = useState<Record<string, any>>({});
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [currentScore, setCurrentScore] = useState(0);
   const [selectedLanguage, setSelectedLanguage] = useState(63); // JavaScript default
@@ -55,19 +54,37 @@ export function ContestAttemptPage() {
   // Load saved answers from backend or local storage on mount
   useEffect(() => {
     if (contestData?.submission?.answers) {
-      setAnswers(contestData.submission.answers as Record<string, string>);
+      // Normalize answers: extract 'value' if it's an object (from DSA submission)
+      const rawAnswers = contestData.submission.answers as Record<string, any>;
+      const normalizedAnswers: Record<string, string> = {};
+
+      Object.entries(rawAnswers).forEach(([qId, val]) => {
+        if (val && typeof val === 'object' && val.value !== undefined) {
+          normalizedAnswers[qId] = val.value;
+        } else if (typeof val === 'string') {
+          normalizedAnswers[qId] = val;
+        } else {
+          normalizedAnswers[qId] = String(val);
+        }
+      });
+
+      setAnswers(normalizedAnswers);
+
       // Initialize score from backend
       if (contestData.submission.score !== undefined) {
         setCurrentScore(contestData.submission.score);
       }
 
+      // Initialize language from current question's saved state if it exists
+      const currentQId = contestData.questions[currentQuestionIndex].question.id;
+      if (rawAnswers[currentQId]?.languageId) {
+        setSelectedLanguage(rawAnswers[currentQId].languageId);
+      }
+
       // Only jump to first unanswered if there's no URL param
       if (!qParam) {
-        const ansKeys = Object.keys(contestData.submission.answers);
-        if (ansKeys.length > 0) {
-          const nextIdx = Math.min(ansKeys.length, contestData.questions.length - 1);
-          setCurrentQuestionIndex(nextIdx);
-        }
+        const nextIdx = Math.min(Object.keys(normalizedAnswers).length, contestData.questions.length - 1);
+        setCurrentQuestionIndex(nextIdx);
       }
     } else if (id) {
       const saved = localStorage.getItem(`contest_${id}_answers`);
@@ -118,29 +135,10 @@ export function ContestAttemptPage() {
     }
   }, [contestData]);
 
-  const saveCurrentAnswer = () => {
-    if (!contestData || !id) return;
-    const currentQ = contestData.questions[currentQuestionIndex].question;
-    const answer = answers[currentQ.id];
-
-    // Only save if we have an answer. 
-    // Optimization: Check if answer differs from saved? 
-    // For now, save if exists to be safe and simple.
-    if (answer !== undefined) {
-      saveProgress.mutate(
-        { contestId: id, questionId: currentQ.id, answer },
-        {
-          onSuccess: (data: any) => {
-            if (data?.data?.score !== undefined) {
-              setCurrentScore(data.data.score);
-            }
-          }
-        }
-      );
-    }
-  };
-
   const handleOptionSelect = (questionId: string, optionId: string) => {
+    // If already submitted, don't allow changes
+    if (contestData?.submission?.answers?.[questionId]) return;
+
     const newAnswers = { ...answers };
     if (newAnswers[questionId] === optionId) {
       delete newAnswers[questionId];
@@ -148,20 +146,29 @@ export function ContestAttemptPage() {
       newAnswers[questionId] = optionId;
     }
     setAnswers(newAnswers);
+  };
 
-    // Immediately save and update score for MCQ
-    if (id && newAnswers[questionId]) {
-      saveProgress.mutate(
-        { contestId: id, questionId, answer: newAnswers[questionId] },
-        {
-          onSuccess: (data: any) => {
-            if (data?.data?.score !== undefined) {
-              setCurrentScore(data.data.score);
-            }
-          }
-        }
-      );
+  const handleSubmitMCQ = () => {
+    if (!id || !currentQuestion.id) return;
+    const answer = answers[currentQuestion.id];
+    if (!answer) {
+      toast.error("Please select an option first");
+      return;
     }
+
+    saveProgress.mutate(
+      { contestId: id, questionId: currentQuestion.id, answer },
+      {
+        onSuccess: () => {
+          toast.success("Answer submitted and locked!", {
+            description: "Your points have been added to the leaderboard."
+          });
+        },
+        onError: (error: any) => {
+          toast.error(error.response?.data?.message || "Failed to submit answer");
+        }
+      }
+    );
   };
 
   const getLanguage = (langId: number) => {
@@ -230,10 +237,8 @@ export function ContestAttemptPage() {
           setRunResult(data);
           setIsSubmitting(false);
           if (data.passed === data.total && data.total > 0) {
-            toast.success(`✅ Submitted! All ${data.total} test cases passed! +${data.pointsEarned} points`);
-            if (data.score !== undefined) {
-              setCurrentScore(data.score);
-            }
+            toast.success(`Submitted! All ${data.total} test cases passed! +${data.pointsEarned} points`);
+            // Score will refresh automatically via invalidateQueries in useSubmitCode hook
           } else {
             toast.error(`Submission failed: ${data.failed} of ${data.total} test cases failed`);
           }
@@ -246,23 +251,8 @@ export function ContestAttemptPage() {
     );
   };
 
-  const handleNext = () => {
-    saveCurrentAnswer();
-    if (contestData && currentQuestionIndex < contestData.questions.length - 1) {
-      setCurrentQuestionIndex((prev) => prev + 1);
-    }
-  };
-
-  const handlePrev = () => {
-    saveCurrentAnswer();
-    if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex((prev) => prev - 1);
-    }
-  };
-
   const handleJumpToQuestion = (index: number) => {
     if (index === currentQuestionIndex) return;
-    saveCurrentAnswer();
     setCurrentQuestionIndex(index);
   }
 
@@ -312,7 +302,6 @@ export function ContestAttemptPage() {
 
   const currentQuestion = contestData.questions[currentQuestionIndex].question;
   const totalQuestions = contestData.questions.length;
-  const isLastQuestion = currentQuestionIndex === totalQuestions - 1;
   const optionLabels = ['A', 'B', 'C', 'D', 'E', 'F'];
 
   const rank = contestData.submission?.rank ?? "N/A";
@@ -362,7 +351,7 @@ export function ContestAttemptPage() {
               <SheetTrigger asChild>
                 <div className="hidden items-center gap-2 sm:flex cursor-pointer hover:scale-105 active:scale-95 transition-transform rounded-md p-1 hover:bg-muted/50" title="Click to view Leaderboard">
                   <span className="font-display text-sm font-bold text-muted-foreground">Score:</span>
-                  <span className="font-mono text-lg font-bold text-primary">{currentScore}</span>
+                  <span className="font-mono text-lg font-bold text-primary">{contestData.submission?.score ?? 0}</span>
                 </div>
               </SheetTrigger>
               <SheetContent side="right" className="w-full sm:w-[600px] sm:max-w-xl p-0">
@@ -393,7 +382,7 @@ export function ContestAttemptPage() {
         <span className="truncate text-xs font-bold">{contestData.title}</span>
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">Score:</span>
-          <span className="font-mono text-sm font-bold text-primary">{currentScore}</span>
+          <span className="font-mono text-sm font-bold text-primary">{contestData.submission?.score ?? 0}</span>
         </div>
       </div>
 
@@ -460,7 +449,7 @@ export function ContestAttemptPage() {
                     height="100%"
                     language={getLanguage(selectedLanguage)}
                     theme="vs-dark"
-                    value={answers[currentQuestion.id] || "// Write your code here"}
+                    value={(typeof answers[currentQuestion.id] === 'object' ? answers[currentQuestion.id].value : answers[currentQuestion.id]) || "// Write your code here"}
                     onChange={(val) => handleCodeChange(currentQuestion.id, val)}
                     path={`question-${currentQuestion.id}`}
                     options={{
@@ -518,7 +507,7 @@ export function ContestAttemptPage() {
                       <h4 className="font-bold text-sm">Test Results</h4>
                       <span className={cn(
                         "text-sm font-mono font-bold",
-                        runResult.passed === runResult.total ? "text-green-500" : "text-red-500"
+                        runResult.passed === (runResult.total || 0) ? "text-green-500" : "text-red-500"
                       )}>
                         {runResult.passed}/{runResult.total} Passed
                       </span>
@@ -532,7 +521,7 @@ export function ContestAttemptPage() {
                     )}
 
                     <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                      {runResult.results?.map((result, idx) => (
+                      {runResult.results?.map((result: any, idx: number) => (
                         <div
                           key={result.testCaseId}
                           className={cn(
@@ -569,76 +558,72 @@ export function ContestAttemptPage() {
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                {currentQuestion.options?.map((option: any, idx: number) => {
-                  const isSelected = answers[currentQuestion.id] === option.id;
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  {currentQuestion.options?.map((option: any, idx: number) => {
+                    const isSelected = answers[currentQuestion.id] === option.id;
+                    const isSubmitted = !!contestData.submission?.answers?.[currentQuestion.id];
 
-                  return (
-                    <div
-                      key={option.id}
-                      onClick={() => handleOptionSelect(currentQuestion.id, option.id)}
-                      className={cn(
-                        "group relative flex cursor-pointer items-start gap-4 rounded-xl border-2 p-5 transition-all duration-200 ease-in-out",
-                        isSelected
-                          ? "border-primary bg-primary/5 shadow-[0_0_0_1px_rgba(var(--primary),1)]"
-                          : "border-border bg-card hover:border-primary/50 hover:bg-accent"
-                      )}
-                    >
-                      <div className={cn(
-                        "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold transition-colors",
-                        isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground group-hover:bg-primary/20 group-hover:text-primary"
-                      )}>
-                        {optionLabels[idx]}
-                      </div>
-
-                      <div className="flex-1 pt-1">
-                        <span className={cn(
-                          "text-base font-medium leading-relaxed",
-                          isSelected ? "text-foreground" : "text-card-foreground"
+                    return (
+                      <div
+                        key={option.id}
+                        onClick={() => !isSubmitted && handleOptionSelect(currentQuestion.id, option.id)}
+                        className={cn(
+                          "group relative flex cursor-pointer items-start gap-4 rounded-xl border-2 p-5 transition-all duration-200 ease-in-out",
+                          isSelected
+                            ? "border-primary bg-primary/5 shadow-[0_0_0_1px_rgba(var(--primary),1)]"
+                            : "border-border bg-card hover:border-primary/50 hover:bg-accent",
+                          isSubmitted && "cursor-not-allowed opacity-80"
+                        )}
+                      >
+                        <div className={cn(
+                          "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold transition-colors",
+                          isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground group-hover:bg-primary/20 group-hover:text-primary"
                         )}>
-                          {option.text}
-                        </span>
-                      </div>
-
-                      {isSelected && (
-                        <div className="absolute right-5 top-5 text-primary">
-                          <CheckCircle2 className="h-6 w-6 fill-primary/10" />
+                          {optionLabels[idx]}
                         </div>
+
+                        <div className="flex-1 pt-1">
+                          <span className={cn(
+                            "text-base font-medium leading-relaxed",
+                            isSelected ? "text-foreground" : "text-card-foreground"
+                          )}>
+                            {option.text}
+                          </span>
+                        </div>
+
+                        {isSelected && (
+                          <div className="absolute right-5 top-5 text-primary">
+                            <CheckCircle2 className="h-6 w-6 fill-primary/10" />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {!contestData.submission?.answers?.[currentQuestion.id] && (
+                  <div className="flex justify-end">
+                    <Button
+                      onClick={handleSubmitMCQ}
+                      disabled={!answers[currentQuestion.id] || saveProgress.isPending}
+                      className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold h-12 px-8 rounded-xl border-2 border-foreground shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] transition-all active:translate-y-[2px] active:shadow-none min-w-[160px]"
+                    >
+                      {saveProgress.isPending ? (
+                        <div className="flex items-center gap-2">
+                          <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                          Submitting...
+                        </div>
+                      ) : (
+                        "Submit Answer"
                       )}
-                    </div>
-                  );
-                })}
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
 
-            <div className="mt-12 flex items-center justify-between border-t-2 border-dashed border-border pt-8">
-              {/* Previous Button is Disabled/Hidden as per requirement */}
-              <Button
-                variant="outline"
-                onClick={handlePrev}
-                disabled={currentQuestionIndex === 0}
-                className={cn(
-                  "gap-2 border-2",
-                  currentQuestionIndex === 0 ? "opacity-50 cursor-not-allowed" : "hover:bg-accent hover:text-accent-foreground"
-                )}
-              >
-                <ChevronLeft className="h-4 w-4" />
-                Previous
-              </Button>
-
-              <Button
-                onClick={isLastQuestion ? handleSubmit : handleNext}
-                className={cn(
-                  "h-12 min-w-[160px] rounded-xl border-2 border-foreground px-8 text-base font-bold shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] dark:shadow-[3px_3px_0px_0px_rgba(255,255,255,1)] transition-all active:translate-y-[3px] active:shadow-none",
-                  isLastQuestion
-                    ? "bg-green-500 hover:bg-green-600 text-white"
-                    : "bg-primary hover:bg-primary/90 text-primary-foreground"
-                )}
-              >
-                {isLastQuestion ? "Finish Contest" : "Next Question"}
-                {!isLastQuestion && <ChevronRight className="h-4 w-4 ml-2" />}
-              </Button>
-            </div>
+            <div className="mt-12 border-t-2 border-dashed border-border pt-8" />
           </div>
         </div>
 
@@ -655,8 +640,10 @@ export function ContestAttemptPage() {
             <div className="grid grid-cols-5 gap-2 sm:grid-cols-8 lg:grid-cols-3 xl:grid-cols-4">
               {contestData.questions.map((q: any, idx: number) => {
                 const questionId = q.question.id;
-                const isAnswered = !!answers[questionId];
                 const isCurrent = currentQuestionIndex === idx;
+                const submissionEntry = contestData.submission?.answers?.[questionId];
+                const isCorrect = submissionEntry && typeof submissionEntry === 'object' && submissionEntry.isCorrect === true;
+                const isFailed = submissionEntry && typeof submissionEntry === 'object' && submissionEntry.isCorrect === false;
 
                 return (
                   <button
@@ -664,20 +651,26 @@ export function ContestAttemptPage() {
                     onClick={() => handleJumpToQuestion(idx)}
                     className={cn(
                       "flex aspect-square items-center justify-center rounded-lg border-2 text-sm font-bold transition-all hover:scale-105 active:scale-95",
-                      isCurrent
-                        ? "border-primary bg-primary text-primary-foreground shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:shadow-[2px_2px_0px_0px_rgba(255,255,255,1)] -translate-y-1"
-                        : isAnswered
-                          ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-500/50 dark:bg-blue-900/20 dark:text-blue-400 opacity-100"
-                          : "border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                      // Background logic
+                      isCorrect
+                        ? "bg-green-500 text-white border-green-600"
+                        : isFailed
+                          ? "bg-red-500 text-white border-red-600"
+                          : "bg-card text-muted-foreground border-border hover:border-primary/50",
+
+                      // Current indicator logic (Borders and Shadows)
+                      isCurrent && "ring-4 ring-primary ring-offset-2 -translate-y-1 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]"
                     )}
                   >
-                    {isAnswered ? (
+                    {isCorrect ? (
                       <Check className="h-4 w-4 sm:h-5 sm:w-5" />
+                    ) : isFailed ? (
+                      <X className="h-4 w-4 sm:h-5 sm:w-5" />
                     ) : (
                       idx + 1
                     )}
                   </button>
-                )
+                );
               })}
             </div>
 
@@ -687,14 +680,18 @@ export function ContestAttemptPage() {
                 <span>Current Problem</span>
               </div>
               <div className="flex items-center gap-3 text-xs font-bold text-muted-foreground">
-                <div className="h-3 w-3 rounded-sm border-2 border-blue-500 bg-blue-50 dark:bg-blue-900/20"></div>
-                <span>Answered</span>
+                <div className="h-3 w-3 rounded-sm border-2 border-green-500 bg-green-500"></div>
+                <span>Correct</span>
+              </div>
+              <div className="flex items-center gap-3 text-xs font-bold text-muted-foreground">
+                <div className="h-3 w-3 rounded-sm border-2 border-red-500 bg-red-500"></div>
+                <span>Incorrect</span>
               </div>
             </div>
           </div>
         </div>
 
       </main>
-    </div>
+    </div >
   );
 }
