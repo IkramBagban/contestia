@@ -2,6 +2,7 @@ import prismaClient from "@repo/db";
 import type { NextFunction, Request, Response } from "express";
 import { createContestSchema } from "../../utils/zodSchema";
 import type { ExtendedRequest } from "../../utils/types";
+import { redisManager } from "../services/redis";
 
 export const getContests = async (
   req: Request,
@@ -186,7 +187,7 @@ export const updateContest = async (
       // Since it's a many-to-many with explicit relation table or implicit
       // The schema likely uses 'questions' relation field in Contest model 
       // which points to ContestsOnQuestions (or similar join table)
-      
+
       // Delete existing relations
       await prismaClient.questionsInContests.deleteMany({
         where: { contestId: id },
@@ -196,18 +197,18 @@ export const updateContest = async (
       await prismaClient.contest.update({
         where: { id },
         data: {
-           questions: {
-             create: questionIds.map(qId => ({
-                 question: { connect: { id: qId } }
-             }))
-           } 
+          questions: {
+            create: questionIds.map(qId => ({
+              question: { connect: { id: qId } }
+            }))
+          }
         }
       });
     }
 
     const updatedContest = await prismaClient.contest.findUnique({
-        where: { id },
-        include: { questions: { include: { question: true } } }
+      where: { id },
+      include: { questions: { include: { question: true } } }
     });
 
     res.status(200).json({
@@ -229,6 +230,10 @@ export const startContest = async (
     const { id } = req.params;
     const userId = req.user!.id;
 
+    if (!id) {
+      throw Object.assign(new Error("Contest id is required"), { status: 400 });
+    }
+
     const contest = await prismaClient.contest.findUnique({ where: { id } });
     if (!contest) {
       throw Object.assign(new Error("Contest not found"), { status: 404 });
@@ -241,16 +246,16 @@ export const startContest = async (
     endDate.setHours(hours, minutes, 0, 0);
 
     // If start time is also important to block future contests:
-    const [startH, startM] = contest.startTime ? contest.startTime.split(":").map(Number) : [0, 0];
+    const [startH, startM]: number[] = contest.startTime ? contest.startTime.split(":").map(Number) : [0, 0];
     const realStartDate = new Date(startDate);
     realStartDate.setHours(startH, startM, 0, 0);
 
     const now = new Date();
-    
+
     if (now > endDate) {
-         throw Object.assign(new Error("Contest has ended"), { status: 400 });
+      throw Object.assign(new Error("Contest has ended"), { status: 400 });
     }
-    
+
     // Optional: Block early access if strict
     // if (now < realStartDate) {
     //      throw Object.assign(new Error("Contest has not started yet"), { status: 400 });
@@ -363,6 +368,9 @@ export const getContestForAttempt = async (
   try {
     const { id } = req.params;
     const userId = req.user!.id;
+    if (!id) {
+      throw Object.assign(new Error("Contest id is required"), { status: 400 });
+    }
 
     const contest = await prismaClient.contest.findUnique({
       where: { id },
@@ -392,20 +400,21 @@ export const getContestForAttempt = async (
       throw Object.assign(new Error("Contest not found"), { status: 404 });
     }
 
+
     const submission = await prismaClient.submission.findUnique({
-        where: {
-            userId_contestId: {
-                userId,
-                contestId: id
-            }
+      where: {
+        userId_contestId: {
+          userId,
+          contestId: id
         }
+      }
     });
 
     res.status(200).json({
       success: true,
       data: {
-          ...contest,
-          submission
+        ...contest,
+        submission
       },
     });
   } catch (error) {
@@ -421,63 +430,98 @@ export const saveProgress = async (
   try {
     const { id } = req.params;
     const userId = req.user!.id;
-    const { answers } = req.body;
+    const { questionId, answer } = req.body;
 
-    const submission = await prismaClient.submission.findUnique({
-      where: { userId_contestId: { userId, contestId: id } },
+    if (!id || !questionId) {
+      throw Object.assign(new Error("Contest id and Question id are required"), { status: 400 });
+    }
+
+    let submission = await prismaClient.submission.findUnique({
+      where: {
+        userId_contestId: { userId, contestId: id }
+      }
     });
 
     if (!submission) {
-      throw Object.assign(new Error("Submission not found. Start contest first."), { status: 404 });
+      submission = await prismaClient.submission.create({
+        data: {
+          userId,
+          contestId: id,
+          answers: {},
+          score: 0,
+        }
+      });
     }
 
-    if (submission.status === "COMPLETED") {
-      throw Object.assign(new Error("Contest already submitted"), { status: 400 });
-    }
-
-    // Calculate Score Server-Side
-    const contestQuestions = await prismaClient.questionsInContests.findMany({
-      where: { contestId: id },
+    const contest = await prismaClient.contest.findUnique({
+      where: { id },
       include: {
-        question: {
+        questions: {
           include: {
-            options: {
-              where: { isCorrect: true },
-            },
-          },
-        },
-      },
-    });
-
-    let score = 0;
-    for (const item of contestQuestions) {
-      const q = item.question;
-      const selectedOptionId = answers[q.id];
-      if (selectedOptionId) {
-        const correctOption = q.options.find((o) => o.isCorrect);
-        if (correctOption && correctOption.id === selectedOptionId) {
-          score += q.points;
+            question: {
+              include: { options: true }
+            }
+          }
         }
       }
+    });
+
+    if (!contest) throw Object.assign(new Error("Contest not found"), { status: 404 });
+
+    const questionData = contest.questions.find(q => q.questionId === questionId)?.question;
+    if (!questionData) throw Object.assign(new Error("Question not found"), { status: 404 });
+
+    let points = 0;
+    let isCorrect = false;
+
+    if (questionData.type === "MCQ") {
+      const correctOption = questionData.options.find(o => o.isCorrect);
+      if (correctOption && correctOption.id === answer) {
+        points = questionData.points;
+        isCorrect = true;
+      }
     }
+
+    const currentAnswersMap = (submission.answers as Record<string, any>) || {};
+
+    const newAnswerEntry = {
+      value: answer,
+      isCorrect,
+      points
+    };
+
+    const updatedAnswers = {
+      ...currentAnswersMap,
+      [questionId]: newAnswerEntry
+    };
+
+    let totalScore = 0;
+    Object.values(updatedAnswers).forEach((entry: any) => {
+      if (entry && typeof entry === 'object' && typeof entry.points === 'number') {
+        totalScore += entry.points;
+      }
+    });
 
     const updatedSubmission = await prismaClient.submission.update({
       where: { id: submission.id },
       data: {
-        answers: answers || {},
-        score: score, // Update partial score in DB
-      },
+        answers: updatedAnswers,
+        score: totalScore
+      }
     });
+
+    await redisManager.redis.zadd(`contest:${id}:leaderboard`, totalScore, userId);
 
     res.status(200).json({
       success: true,
-      message: "Progress saved",
       data: {
-          score, // Return score to frontend
-          answers: updatedSubmission.answers
+        score: totalScore,
+        answers: updatedAnswers
       }
     });
   } catch (error) {
     next(error);
   }
 };
+
+

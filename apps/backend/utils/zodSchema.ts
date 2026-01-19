@@ -64,3 +64,17 @@ export const questionQuerySchema = z.object({
   contestId: z.string().optional(),
   type: z.enum(["MCQ", "DSA"]).optional(),
 });
+
+
+export const runCodeSchema = z.object({
+  languageId: z.number(),
+  code: z.string(),
+  questionId: z.string(),
+})
+
+export const submitCodeSchema = z.object({
+  languageId: z.number(),
+  code: z.string(),
+  questionId: z.string(),
+  contestId: z.string(),
+})
