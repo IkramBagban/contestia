@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { useContestForAttempt, useSubmitContest, useSaveProgress } from "../hooks/use-queries";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useContestForAttempt, useSubmitContest, useSaveProgress, useRunCode, useSubmitCode, type RunCodeResult } from "../hooks/use-queries";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm"; // Imported for GFM support
-import Editor from "@monaco-editor/react"; // Imported Monaco Editor
+import Editor, { loader } from "@monaco-editor/react"; // Imported Monaco Editor
+
+// Configure Monaco to load from CDN to avoid Vite bundling issues (t.create is not a function)
+loader.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/min/vs' } });
+
 import {
   Clock,
   ChevronRight,
@@ -31,11 +35,20 @@ export function ContestAttemptPage() {
   const submitContest = useSubmitContest();
   const saveProgress = useSaveProgress();
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  const qParam = searchParams.get("q");
+
   // State
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(() => {
+    const val = parseInt(qParam || "0", 10);
+    return isNaN(val) ? 0 : val;
+  });
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [currentScore, setCurrentScore] = useState(0);
+  const [selectedLanguage, setSelectedLanguage] = useState(63); // JavaScript default
+  const [runResult, setRunResult] = useState<RunCodeResult | null>(null);
+  const [isRunning, setIsRunning] = useState(false);
 
 
 
@@ -48,31 +61,26 @@ export function ContestAttemptPage() {
         setCurrentScore(contestData.submission.score);
       }
 
-      // Also restore current index to the first unanswered question or last answered + 1?
-      // For now, let's keep it 0 or user manual choice, but since we lock previous, we should arguably jump to latest.
-      // Let's find the first unanswered question index.
-      const ansKeys = Object.keys(contestData.submission.answers);
-      if (ansKeys.length > 0) {
-        // Find max index answered? Or just count?
-        // Simple: jump to count.
-        const nextIdx = Math.min(ansKeys.length, contestData.questions.length - 1);
-        setCurrentQuestionIndex(nextIdx);
+      // Only jump to first unanswered if there's no URL param
+      if (!qParam) {
+        const ansKeys = Object.keys(contestData.submission.answers);
+        if (ansKeys.length > 0) {
+          const nextIdx = Math.min(ansKeys.length, contestData.questions.length - 1);
+          setCurrentQuestionIndex(nextIdx);
+        }
       }
     } else if (id) {
       const saved = localStorage.getItem(`contest_${id}_answers`);
       if (saved) {
         setAnswers(JSON.parse(saved));
-        // Same logic for local storage restore could apply, but let's stick to backend sync mainly.
       }
     }
-  }, [contestData, id]);
+  }, [contestData, id, qParam]);
 
-  // Save answers to local storage whenever they change
+  // Sync state to URL
   useEffect(() => {
-    if (id && Object.keys(answers).length > 0) {
-      localStorage.setItem(`contest_${id}_answers`, JSON.stringify(answers));
-    }
-  }, [id, answers]);
+    setSearchParams({ q: currentQuestionIndex.toString() }, { replace: true });
+  }, [currentQuestionIndex, setSearchParams]);
 
   // Timer Logic
   useEffect(() => {
@@ -140,7 +148,32 @@ export function ContestAttemptPage() {
       newAnswers[questionId] = optionId;
     }
     setAnswers(newAnswers);
-    // Auto-save is handled on navigation (Next/Prev/Jump) as per user request
+
+    // Immediately save and update score for MCQ
+    if (id && newAnswers[questionId]) {
+      saveProgress.mutate(
+        { contestId: id, questionId, answer: newAnswers[questionId] },
+        {
+          onSuccess: (data: any) => {
+            if (data?.data?.score !== undefined) {
+              setCurrentScore(data.data.score);
+            }
+          }
+        }
+      );
+    }
+  };
+
+  const getLanguage = (langId: number) => {
+    switch (langId) {
+      case 71: return "python";
+      case 62: return "java";
+      case 54: return "cpp";
+      case 74: return "typescript";
+      case 60: return "go";
+      case 73: return "rust";
+      default: return "javascript";
+    }
   };
 
   const handleCodeChange = (questionId: string, code: string | undefined) => {
@@ -149,11 +182,68 @@ export function ContestAttemptPage() {
     setAnswers(newAnswers);
   };
 
+  const runCode = useRunCode();
+  const submitCode = useSubmitCode();
+
   const handleRunCode = () => {
     const code = answers[currentQuestion.id];
-    if (id) {
-      saveProgress.mutate({ contestId: id, questionId: currentQuestion.id, answer: code });
+    if (!code || !currentQuestion.id) {
+      toast.error("Please write some code first");
+      return;
     }
+    setIsRunning(true);
+    setRunResult(null);
+    runCode.mutate(
+      { languageId: selectedLanguage, code, questionId: currentQuestion.id },
+      {
+        onSuccess: (data: any) => {
+          setRunResult(data);
+          setIsRunning(false);
+          if (data.passed === data.total && data.total > 0) {
+            toast.success(`All ${data.total} test cases passed!`);
+          } else {
+            toast.error(`${data.failed} of ${data.total} test cases failed`);
+          }
+        },
+        onError: (error: any) => {
+          setIsRunning(false);
+          toast.error(error.response?.data?.message || "Failed to run code");
+        }
+      }
+    );
+  };
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmitDSA = () => {
+    const code = answers[currentQuestion.id];
+    if (!code || !currentQuestion.id || !id) {
+      toast.error("Please write some code first");
+      return;
+    }
+    setIsSubmitting(true);
+    setRunResult(null);
+    submitCode.mutate(
+      { languageId: selectedLanguage, code, questionId: currentQuestion.id, contestId: id },
+      {
+        onSuccess: (data: any) => {
+          setRunResult(data);
+          setIsSubmitting(false);
+          if (data.passed === data.total && data.total > 0) {
+            toast.success(`✅ Submitted! All ${data.total} test cases passed! +${data.pointsEarned} points`);
+            if (data.score !== undefined) {
+              setCurrentScore(data.score);
+            }
+          } else {
+            toast.error(`Submission failed: ${data.failed} of ${data.total} test cases failed`);
+          }
+        },
+        onError: (error: any) => {
+          setIsSubmitting(false);
+          toast.error(error.response?.data?.message || "Failed to submit code");
+        }
+      }
+    );
   };
 
   const handleNext = () => {
@@ -330,8 +420,8 @@ export function ContestAttemptPage() {
                 </div>
               </div>
 
-              <div className="mb-8">
-                <div className="prose prose-sm dark:prose-invert max-w-none font-sans text-foreground/90 sm:prose-base md:prose-lg leading-relaxed [&_pre]:bg-muted [&_pre]:border [&_pre]:border-border [&_code]:bg-muted [&_code]:rounded px-1 [&_code]:font-mono [&_code]:text-primary">
+              <div className="mb-8 overflow-hidden">
+                <div className="prose prose-sm dark:prose-invert max-w-none font-sans text-foreground/90 sm:prose-base md:prose-lg leading-relaxed [&_pre]:bg-muted [&_pre]:p-4 [&_pre]:rounded-lg [&_pre]:border [&_pre]:border-border [&_code]:bg-muted [&_code]:rounded [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-primary [&_h3]:text-xl [&_h3]:font-bold [&_h4]:text-lg [&_h4]:font-semibold [&_strong]:font-bold">
                   <ReactMarkdown
                     rehypePlugins={[rehypeRaw]}
                     remarkPlugins={[remarkGfm]}
@@ -345,14 +435,34 @@ export function ContestAttemptPage() {
             {/* Content Area: MCQ Options OR Code Editor */}
             {isDSA ? (
               <div className="space-y-4">
-                <div className="h-[400px] overflow-hidden rounded-xl border-2 border-border shadow-sm">
+                {/* Language Selector */}
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-muted-foreground">Language:</label>
+                  <select
+                    value={selectedLanguage}
+                    onChange={(e) => setSelectedLanguage(Number(e.target.value))}
+                    className="h-9 rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value={63}>JavaScript (Node.js)</option>
+                    <option value={71}>Python (3.8)</option>
+                    <option value={62}>Java (OpenJDK 13)</option>
+                    <option value={54}>C++ (GCC 9.2)</option>
+                    <option value={74}>TypeScript (3.7)</option>
+                    <option value={60}>Go (1.13)</option>
+                    <option value={73}>Rust (1.40)</option>
+                  </select>
+                </div>
+
+                {/* Code Editor */}
+                <div className="h-[350px] overflow-hidden rounded-xl border-2 border-border shadow-sm">
                   <Editor
+                    key={`${currentQuestion.id}-${selectedLanguage}`}
                     height="100%"
-                    defaultLanguage="javascript"
-                    defaultValue="// Write your code here"
-                    theme="vs-dark" // Automatic theme switching would be better but keeping simple
-                    value={answers[currentQuestion.id] || ""}
+                    language={getLanguage(selectedLanguage)}
+                    theme="vs-dark"
+                    value={answers[currentQuestion.id] || "// Write your code here"}
                     onChange={(val) => handleCodeChange(currentQuestion.id, val)}
+                    path={`question-${currentQuestion.id}`}
                     options={{
                       minimap: { enabled: false },
                       fontSize: 14,
@@ -361,15 +471,102 @@ export function ContestAttemptPage() {
                     }}
                   />
                 </div>
-                <div className="flex justify-end">
+
+                {/* Action Buttons */}
+                <div className="flex justify-end gap-3">
                   <Button
                     onClick={handleRunCode}
-                    className="bg-green-600 hover:bg-green-700 text-white font-bold gap-2"
+                    disabled={isRunning || isSubmitting}
+                    variant="outline"
+                    className="gap-2 border-green-600 text-green-600 hover:bg-green-600/10 disabled:opacity-50"
                   >
-                    <Play className="h-4 w-4" />
-                    Run Code
+                    {isRunning ? (
+                      <>
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-green-600 border-t-transparent" />
+                        Running...
+                      </>
+                    ) : (
+                      <>
+                        <Play className="h-4 w-4" />
+                        Run Code
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    onClick={handleSubmitDSA}
+                    disabled={isRunning || isSubmitting}
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold gap-2 disabled:opacity-50"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                        Submitting...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="h-4 w-4" />
+                        Submit
+                      </>
+                    )}
                   </Button>
                 </div>
+
+                {/* Test Results Panel */}
+                {runResult && (
+                  <div className="rounded-xl border-2 border-border bg-muted/30 p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-bold text-sm">Test Results</h4>
+                      <span className={cn(
+                        "text-sm font-mono font-bold",
+                        runResult.passed === runResult.total ? "text-green-500" : "text-red-500"
+                      )}>
+                        {runResult.passed}/{runResult.total} Passed
+                      </span>
+                    </div>
+
+                    {runResult.compilationError && (
+                      <div className="rounded-lg bg-red-500/10 border border-red-500/30 p-3">
+                        <p className="text-xs font-bold text-red-500 mb-1">Compilation Error</p>
+                        <pre className="text-xs text-red-400 overflow-x-auto whitespace-pre-wrap">{runResult.compilationError}</pre>
+                      </div>
+                    )}
+
+                    <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                      {runResult.results?.map((result, idx) => (
+                        <div
+                          key={result.testCaseId}
+                          className={cn(
+                            "rounded-lg border p-3 text-sm",
+                            result.passed
+                              ? "border-green-500/30 bg-green-500/5"
+                              : "border-red-500/30 bg-red-500/5"
+                          )}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-medium">Test Case {idx + 1}</span>
+                            <span className={cn(
+                              "text-xs font-bold px-2 py-0.5 rounded-full",
+                              result.passed ? "bg-green-500/20 text-green-500" : "bg-red-500/20 text-red-500"
+                            )}>
+                              {result.passed ? "PASSED" : "FAILED"}
+                            </span>
+                          </div>
+                          {!result.passed && (
+                            <div className="space-y-1 text-xs font-mono">
+                              <div><span className="text-muted-foreground">Input:</span> {typeof result.input === 'object' ? JSON.stringify(result.input) : result.input}</div>
+                              <div><span className="text-muted-foreground">Expected:</span> {typeof result.expectedOutput === 'object' ? JSON.stringify(result.expectedOutput) : result.expectedOutput}</div>
+                              <div><span className="text-muted-foreground">Got:</span> {typeof result.actualOutput === 'object' ? JSON.stringify(result.actualOutput) : (result.actualOutput || "(empty)")}</div>
+                              {result.error && <div className="text-red-400">Error: {result.error}</div>}
+                            </div>
+                          )}
+                          {result.executionTime && (
+                            <div className="text-xs text-muted-foreground mt-1">Time: {result.executionTime}s</div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

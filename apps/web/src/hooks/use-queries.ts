@@ -4,8 +4,8 @@ import { api } from '@/lib/api';
 // --- Types ---
 // Minimal types for now
 interface AuthPayload {
-    email: string;
-    password: string;
+  email: string;
+  password: string;
 }
 
 // --- Auth ---
@@ -53,11 +53,11 @@ export function useContests() {
 }
 
 export function useContestForAttempt(id: string) {
-    return useQuery({
-        queryKey: ['contest-attempt', id],
-        queryFn: () => api.get(`/contests/${id}/attempt`).then(res => res.data.data),
-        enabled: !!id,
-    });
+  return useQuery({
+    queryKey: ['contest-attempt', id],
+    queryFn: () => api.get(`/contests/${id}/attempt`).then(res => res.data.data),
+    enabled: !!id,
+  });
 }
 
 // --- Submission ---
@@ -68,22 +68,61 @@ export function useStartContest() {
 }
 
 export function useSubmitContest() {
-    return useMutation({
-        mutationFn: ({ contestId, answers }: { contestId: string, answers: any }) => 
-            api.post(`/contests/${contestId}/submit`, { answers }).then(res => res.data.data),
-    });
+  return useMutation({
+    mutationFn: ({ contestId, answers }: { contestId: string, answers: any }) =>
+      api.post(`/contests/${contestId}/submit`, { answers }).then(res => res.data.data),
+  });
 }
 
 export function useSaveProgress() {
-    return useMutation({
-        mutationFn: ({ contestId, answers }: { contestId: string, answers: any }) => 
-            api.put(`/contests/${contestId}/progress`, { answers }).then(res => res.data),
-    });
+  return useMutation({
+    mutationFn: ({ contestId, questionId, answer }: { contestId: string; questionId: string; answer: any }) =>
+      api.put(`/contests/${contestId}/progress`, { questionId, answer }).then(res => res.data),
+  });
 }
 
 export function useMySubmissions() {
-    return useQuery({
-        queryKey: ['my-submissions'],
-        queryFn: () => api.get('/auth/me/submissions').then(res => res.data.data),
-    });
+  return useQuery({
+    queryKey: ['my-submissions'],
+    queryFn: () => api.get('/auth/me/submissions').then(res => res.data.data),
+  });
+}
+
+// --- Code Execution (Judge0) ---
+export interface RunCodeResult {
+  passed: number;
+  failed: number;
+  total: number;
+  results: {
+    testCaseId: string;
+    passed: boolean;
+    input: string;
+    expectedOutput: string;
+    actualOutput: string;
+    error: string | null;
+    executionTime: string | null;
+  }[];
+  compilationError: string | null;
+}
+
+export function useLanguages() {
+  return useQuery({
+    queryKey: ['languages'],
+    queryFn: () => api.get('/judge0/languages').then(res => res.data),
+    staleTime: Infinity, // Languages don't change
+  });
+}
+
+export function useRunCode() {
+  return useMutation({
+    mutationFn: ({ languageId, code, questionId }: { languageId: number; code: string; questionId: string }) =>
+      api.post<RunCodeResult>('/judge0/run-code', { languageId, code, questionId }).then(res => res.data),
+  });
+}
+
+export function useSubmitCode() {
+  return useMutation({
+    mutationFn: ({ languageId, code, questionId, contestId }: { languageId: number; code: string; questionId: string; contestId: string }) =>
+      api.post<RunCodeResult & { score?: number; pointsEarned: number; submitted: boolean }>('/judge0/submit-code', { languageId, code, questionId, contestId }).then(res => res.data),
+  });
 }

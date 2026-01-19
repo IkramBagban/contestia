@@ -34,10 +34,12 @@ export function useLeaderboard(contestId: string, enabled: boolean = true) {
             setIsConnected(true);
             setError(null);
             // Subscribe immediately
-            ws.current?.send(JSON.stringify({
-                type: WebSocketMessageType.SUBSCRIBE_LEADERBOARD,
-                payload: { contestId }
-            }));
+            if (ws.current?.readyState === WebSocket.OPEN) {
+                ws.current.send(JSON.stringify({
+                    type: WebSocketMessageType.SUBSCRIBE_LEADERBOARD,
+                    payload: { contestId }
+                }));
+            }
         };
 
         ws.current.onmessage = (event) => {
