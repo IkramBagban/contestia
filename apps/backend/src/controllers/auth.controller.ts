@@ -16,10 +16,11 @@ export const signup = async (
     const schemaResult = signupSchema.safeParse(body);
 
     if (!schemaResult.success) {
-      const error = new Error(
-        "validation Error: " + JSON.stringify(schemaResult.error.flatten())
-      );
-      // will solve type error later
+      const firstIssue = schemaResult.error.issues[0];
+      const errorMessage = firstIssue
+        ? `${firstIssue.path.join(".")}: ${firstIssue.message}`
+        : "Validation failed";
+      const error = new Error(errorMessage);
       // @ts-ignore
       error.status = 400;
       throw error;
@@ -46,7 +47,7 @@ export const signup = async (
         const err = new Error("Email already in use.");
         // @ts-ignore
         err.status = 409;
-        return next(error);
+        return next(err);
       }
     }
     next(error);
@@ -64,10 +65,11 @@ export const login = async (
 
     const schemaResult = loginSchema.safeParse(body);
     if (!schemaResult.success) {
-      const error = new Error(
-        "validation Error: " + JSON.stringify(schemaResult.error.flatten())
-      );
-      // will solve type error later
+      const firstIssue = schemaResult.error.issues[0];
+      const errorMessage = firstIssue
+        ? `${firstIssue.path.join(".")}: ${firstIssue.message}`
+        : "Validation failed";
+      const error = new Error(errorMessage);
       // @ts-ignore
       error.status = 400;
       throw error;

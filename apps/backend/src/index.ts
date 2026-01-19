@@ -44,15 +44,32 @@ app.get("/", (req, res) => {
 
 app.use(
   (
-    err: Error & { status: number; message: string },
+    err: any,
     req: Request,
     res: Response,
     next: NextFunction
   ) => {
-    const status = err.status || 500;
-    const errorMessage = err.message || "Internal Serer Error";
-    console.log("ERROR: ", { err });
-    res.status(status).json({ success: false, error: errorMessage });
+    let status = err.status || 500;
+    let errorMessage = err.message || "Internal Server Error";
+
+    if (err.name?.includes("Prisma") || (err.message && err.message.includes("prismaClient"))) {
+      if (!err.status || err.status === 500) {
+        errorMessage = "A database error occurred. Please try again later.";
+        status = 500;
+      }
+    }
+
+    console.log("ERROR LOGGED: ", {
+      name: err.name,
+      status,
+      message: err.message,
+      path: req.path
+    });
+
+    res.status(status).json({
+      success: false,
+      error: errorMessage
+    });
   }
 );
 server.listen(PORT, () => {

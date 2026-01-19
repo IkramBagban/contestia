@@ -20,6 +20,7 @@ export function useLogin() {
   return useMutation({
     mutationFn: (data: AuthPayload) => api.post('/auth/login', data).then(res => res.data),
     onSuccess: () => {
+      queryClient.clear(); // Clear EVERYTHING on login to avoid any cache leakage
       queryClient.invalidateQueries({ queryKey: ['me'] });
     }
   });
@@ -30,7 +31,7 @@ export function useLogout() {
   return useMutation({
     mutationFn: () => api.post('/auth/logout').then(res => res.data),
     onSuccess: () => {
-      queryClient.setQueryData(['me'], null);
+      queryClient.clear(); // Wipe entire cache on logout
       queryClient.invalidateQueries({ queryKey: ['me'] });
     }
   });
@@ -53,10 +54,14 @@ export function useContests() {
 }
 
 export function useContestForAttempt(id: string) {
+  const { data: user } = useMe();
+  const userId = user?.id || 'guest';
+
   return useQuery({
-    queryKey: ['contest-attempt', id],
+    queryKey: ['contest-attempt', id, userId], // Isolated by user to prevent crosstalk
     queryFn: () => api.get(`/contests/${id}/attempt`).then(res => res.data.data),
     enabled: !!id,
+    staleTime: 1000 * 60, // 1 minute stale time
   });
 }
 
@@ -68,9 +73,16 @@ export function useStartContest() {
 }
 
 export function useSubmitContest() {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: ({ contestId, answers }: { contestId: string, answers: any }) =>
       api.post(`/contests/${contestId}/submit`, { answers }).then(res => res.data.data),
+    onSuccess: (_, variables) => {
+      // Robustly invalidate everything related to this contest attempt for the current user
+      queryClient.invalidateQueries({ queryKey: ['contest-attempt', variables.contestId] });
+      queryClient.invalidateQueries({ queryKey: ['my-submissions'] });
+    }
   });
 }
 
@@ -130,7 +142,8 @@ export function useSubmitCode() {
     mutationFn: ({ languageId, code, questionId, contestId }: { languageId: number; code: string; questionId: string; contestId: string }) =>
       api.post<RunCodeResult & { score?: number; pointsEarned: number; submitted: boolean }>('/judge0/submit-code', { languageId, code, questionId, contestId }).then(res => res.data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['contest-attempt', variables.contestId] });
+      const userId = queryClient.getQueryData<any>(['me'])?.id || 'guest';
+      queryClient.invalidateQueries({ queryKey: ['contest-attempt', variables.contestId, userId] });
     }
   });
 }
