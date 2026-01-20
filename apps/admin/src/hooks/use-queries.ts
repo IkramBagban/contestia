@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 
 // --- Auth Types ---
@@ -48,7 +48,6 @@ interface CreateContestPayload {
   questionIds: string[];
 }
 
-// --- Question Types ---
 interface Option {
   id?: string;
   text: string;
@@ -56,22 +55,37 @@ interface Option {
   questionId?: string;
 }
 
+interface TestCase {
+  id?: string;
+  input: any;
+  expectedOutput: any;
+  isHidden: boolean;
+  questionId?: string;
+}
+
 export interface Question {
-  id: string; 
+  id: string;
   text: string;
   type: 'MCQ' | 'DSA';
   points: number;
+  funcName?: string;
   options?: Option[];
+  testCases?: TestCase[];
 }
 
 interface CreateQuestionPayload {
   text: string;
   type: 'MCQ' | 'DSA';
   points: number;
+  funcName?: string;
   options?: {
     text: string;
     isCorrect: boolean;
-    questionId: string; // Zod schema requires this...
+  }[];
+  testCases?: {
+    input: any;
+    expectedOutput: any;
+    isHidden: boolean;
   }[];
 }
 
@@ -175,12 +189,29 @@ export function useUpdateContest() {
 
 // --- Question Hooks ---
 
-export function useQuestions() {
+export function useQuestions(page: number = 1, limit: number = 50) {
   return useQuery({
-    queryKey: ['questions'],
+    queryKey: ['questions', page, limit],
     queryFn: async () => {
-      const { data } = await api.get<{ success: boolean; data: Question[] }>('/questions');
-      return data.data;
+      const { data } = await api.get<{ success: boolean; data: Question[]; meta: any }>(`/questions?page=${page}&limit=${limit}`);
+      return data;
+    },
+  });
+}
+
+export function useInfiniteQuestions(limit: number = 20) {
+  return useInfiniteQuery({
+    queryKey: ['questions', 'infinite', limit],
+    queryFn: async ({ pageParam = 1 }) => {
+      const { data } = await api.get<{ success: boolean; data: Question[]; meta: any }>(`/questions?page=${pageParam}&limit=${limit}`);
+      return data;
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      if (lastPage.meta && lastPage.meta.page < lastPage.meta.totalPages) {
+        return lastPage.meta.page + 1;
+      }
+      return undefined;
     },
   });
 }

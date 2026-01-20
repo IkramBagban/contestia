@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { ArrowLeft, Loader2 } from "lucide-react"
+import { ArrowLeft, Loader2, Info } from "lucide-react"
 import { useNavigate, useSearchParams, useParams } from "react-router-dom"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -27,13 +27,16 @@ export function CreateQuestion() {
   const [questionText, setQuestionText] = useState("")
   // const [description, setDescription] = useState("")
   const [points, setPoints] = useState(10)
+  const [funcName, setFuncName] = useState("")
   const [options, setOptions] = useState([
     { id: 'A', text: '', isCorrect: false },
     { id: 'B', text: '', isCorrect: false },
     { id: 'C', text: '', isCorrect: false },
     { id: 'D', text: '', isCorrect: false },
   ])
-  const [testCases, setTestCases] = useState<{ input: string, output: string }[]>([])
+  const [testCases, setTestCases] = useState<{ input: string, expectedOutput: string, isHidden: boolean }[]>([
+    { input: '', expectedOutput: '', isHidden: false }
+  ])
 
   const [type, setType] = useState<"mcq" | "dsa" | "sandbox">("mcq")
 
@@ -51,6 +54,7 @@ export function CreateQuestion() {
       // Use full text for the rich text editor
       setQuestionText(existingQuestion.text)
       setPoints(existingQuestion.points)
+      setFuncName(existingQuestion.funcName || "")
 
       if (existingQuestion.type === 'MCQ' && existingQuestion.options) { // Assuming options are returned
         // Map existing options or pad with empty ones if less than 4
@@ -66,8 +70,9 @@ export function CreateQuestion() {
 
       if (existingQuestion.type === 'DSA' && existingQuestion.testCases) {
         setTestCases(existingQuestion.testCases.map((tc: any) => ({
-          input: tc.input,
-          output: tc.output
+          input: typeof tc.input === 'string' ? tc.input : JSON.stringify(tc.input),
+          expectedOutput: typeof tc.expectedOutput === 'string' ? tc.expectedOutput : JSON.stringify(tc.expectedOutput),
+          isHidden: tc.isHidden || false
         })))
       }
     }
@@ -92,15 +97,61 @@ export function CreateQuestion() {
     // const text = description ? `${title}\n\n${description}` : title
     const text = questionText
 
+    // Validate and Parse Test Cases if DSA
+    let processedTestCases = undefined
+    if (type === 'dsa') {
+      try {
+        processedTestCases = testCases.map(tc => {
+          let parsedInput;
+          try {
+            parsedInput = JSON.parse(tc.input);
+          } catch (e) {
+            // If it's not valid JSON, treat it as a string if it's simple, 
+            // but for arguments we really want an array.
+            // Let's be strict for now to avoid weird bugs.
+            throw new Error(`Invalid JSON in test case input: ${tc.input}`);
+          }
+
+          if (!Array.isArray(parsedInput)) {
+            throw new Error(`Test case input must be a JSON array (arguments list). Got: ${tc.input}`);
+          }
+
+          let parsedOutput;
+          try {
+            parsedOutput = JSON.parse(tc.expectedOutput);
+          } catch (e) {
+            // For output, if it's not valid JSON, it might just be a string.
+            // But structuredClone/Judge0 might expect actual JSON values.
+            parsedOutput = tc.expectedOutput;
+          }
+
+          return {
+            input: parsedInput,
+            expectedOutput: parsedOutput,
+            isHidden: tc.isHidden
+          }
+        });
+      } catch (err: any) {
+        toast.error(err.message);
+        return;
+      }
+
+      if (!funcName || funcName.trim() === "") {
+        toast.error("Function name is required for DSA questions");
+        return;
+      }
+    }
+
     const payload = {
       type: type === 'mcq' ? 'MCQ' : 'DSA',
       text,
       points: Number(points),
+      funcName: type === 'dsa' ? funcName : undefined,
       options: type === 'mcq' ? options.map(o => ({
         text: o.text,
         isCorrect: o.isCorrect,
       })) : undefined,
-      testCases: type === 'dsa' ? testCases : undefined
+      testCases: type === 'dsa' ? processedTestCases : undefined
     }
 
     const mutation = id ? updateQuestion : createQuestion
@@ -111,7 +162,7 @@ export function CreateQuestion() {
         toast.success(id ? "Question updated successfully" : "Question created successfully")
         navigate("/questions")
       },
-      onError: (error) => {
+      onError: (error: any) => {
         toast.error("Failed to save question: " + error.message)
       }
     })
@@ -211,6 +262,19 @@ export function CreateQuestion() {
                     />
                 </div>
                 */}
+            {type === "dsa" && (
+              <div className="space-y-2">
+                <Label htmlFor="funcName">Function Name</Label>
+                <Input
+                  id="funcName"
+                  placeholder="e.g. twoSum"
+                  value={funcName}
+                  onChange={(e) => setFuncName(e.target.value)}
+                  className="font-mono"
+                />
+                <p className="text-[10px] text-muted-foreground italic">Must match the function name required in the solution.</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -250,7 +314,7 @@ export function CreateQuestion() {
                 <CardDescription>Define input/output cases for checking correctness.</CardDescription>
               </div>
               <Button
-                onClick={() => setTestCases([...testCases, { input: '', output: '' }])}
+                onClick={() => setTestCases([...testCases, { input: '', expectedOutput: '', isHidden: false }])}
                 variant="outline"
                 size="sm"
                 className="cursor-pointer"
@@ -259,33 +323,78 @@ export function CreateQuestion() {
               </Button>
             </CardHeader>
             <CardContent className="space-y-6">
+              <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 flex gap-3 text-sm text-blue-200/80">
+                <Info className="h-5 w-5 shrink-0 text-blue-400" />
+                <div className="space-y-1">
+                  <p className="font-bold text-blue-400">DSA Input Guide</p>
+                  <ul className="list-disc list-inside space-y-1 opacity-90">
+                    <li><b>Function Name</b>: Must match the function students will write (e.g. <code>twoSum</code>).</li>
+                    <li><b>Input (JSON Array)</b>: Each element in the array is treated as one <b>argument</b> to your function.
+                      <br /><i>Example: <code>[[2,7,11,15], 9]</code> calls <code>twoSum([2,7,11,15], 9)</code>.</i>
+                    </li>
+                    <li><b>Expected Output (JSON)</b>: The literal value the function should return.
+                      <br /><i>Example: <code>[0, 1]</code> for the indices.</i>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
               {testCases.map((tc, index) => (
-                <div key={index} className="relative grid gap-4 rounded-lg border border-border p-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>Input</Label>
-                    <Textarea
-                      placeholder="Input data..."
-                      value={tc.input}
-                      onChange={(e) => {
-                        const newCases = [...testCases];
-                        newCases[index].input = e.target.value;
-                        setTestCases(newCases);
-                      }}
-                      className="font-mono text-sm"
-                    />
+                <div key={index} className="relative grid gap-4 rounded-lg border border-border p-4 sm:grid-cols-1">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2">
+                        Input (JSON Array)
+                        <Tooltip>
+                          <TooltipTrigger><Info className="h-3 w-3 opacity-50" /></TooltipTrigger>
+                          <TooltipContent>An array where each item is a function argument.</TooltipContent>
+                        </Tooltip>
+                      </Label>
+                      <Textarea
+                        placeholder='e.g. [[2,7,11,15], 9]'
+                        value={tc.input}
+                        onChange={(e) => {
+                          const newCases = [...testCases];
+                          newCases[index].input = e.target.value;
+                          setTestCases(newCases);
+                        }}
+                        className="font-mono text-sm h-24"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2">
+                        Expected Output (JSON)
+                        <Tooltip>
+                          <TooltipTrigger><Info className="h-3 w-3 opacity-50" /></TooltipTrigger>
+                          <TooltipContent>The exact JSON value returned by the function.</TooltipContent>
+                        </Tooltip>
+                      </Label>
+                      <Textarea
+                        placeholder='e.g. [0, 1]'
+                        value={tc.expectedOutput}
+                        onChange={(e) => {
+                          const newCases = [...testCases];
+                          newCases[index].expectedOutput = e.target.value;
+                          setTestCases(newCases);
+                        }}
+                        className="font-mono text-sm h-24"
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Expected Output</Label>
-                    <Textarea
-                      placeholder="Expected output..."
-                      value={tc.output}
-                      onChange={(e) => {
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id={`hidden-${index}`}
+                      checked={tc.isHidden}
+                      onCheckedChange={(checked) => {
                         const newCases = [...testCases];
-                        newCases[index].output = e.target.value;
+                        newCases[index].isHidden = checked === true;
                         setTestCases(newCases);
                       }}
-                      className="font-mono text-sm"
                     />
+                    <Label htmlFor={`hidden-${index}`} className="text-sm font-medium leading-none cursor-pointer">
+                      Hidden Test Case
+                    </Label>
+                    <span className="text-[10px] text-muted-foreground">(Hidden cases are used for final grading only)</span>
                   </div>
                   <Button
                     variant="destructive"
@@ -324,7 +433,6 @@ export function CreateQuestion() {
 
 function TypeCard({
   label,
-  value,
   active,
   onClick,
   disabled,
