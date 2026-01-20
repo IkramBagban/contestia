@@ -9,6 +9,7 @@ import { LoginPage } from "@/pages/Login"
 import { SignupPage } from "@/pages/Signup"
 import { DashboardPage } from "@/pages/Dashboard"
 import { ContestAttemptPage } from "@/pages/ContestAttempt"
+import { ContestResultPage } from "@/pages/ContestResult"
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ function App() {
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/contest/:id" element={<ContestPage />} />
             <Route path="/contest/:id/attempt" element={<ContestAttemptPage />} />
+            <Route path="/contest/:id/result" element={<ContestResultPage />} />
             <Route path="/leaderboard/:id" element={<LeaderboardPage />} />
           </Routes>
         </AuthProvider>

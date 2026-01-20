@@ -3,7 +3,8 @@ import { cn } from "@/lib/utils"
 import { useParams, useNavigate } from "react-router-dom"
 import { Trophy, Clock, ArrowRight, Calendar, Info, Play } from "lucide-react"
 import { RealtimeLeaderboard } from "@/components/domain/leaderboard/realtime-leaderboard"
-import { useContestForAttempt } from "@/hooks/use-queries"
+import { useContestForAttempt, useStartContest } from "@/hooks/use-queries"
+import { toast } from "sonner"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 
@@ -13,6 +14,31 @@ export function ContestPage() {
 
     // Ideally use a lighter query, but this works for now
     const { data: contestData, isLoading, error } = useContestForAttempt(id || "")
+    const { mutate: startContest } = useStartContest();
+
+    const handleEnterContest = () => {
+        if (!id) return;
+
+        // If already started, just navigate
+        if (contestData?.submission) {
+            navigate(`/contest/${id}/attempt`);
+            return;
+        }
+
+        startContest(id, {
+            onSuccess: () => {
+                navigate(`/contest/${id}/attempt`);
+            },
+            onError: (err: any) => {
+                const msg = err.response?.data?.error || err.response?.data?.message || "Failed to start contest";
+                if (msg.includes("started") || msg.includes("already submitted")) {
+                    navigate(`/contest/${id}/attempt`);
+                } else {
+                    toast.error(msg);
+                }
+            }
+        });
+    }
 
     if (isLoading) {
         return (
@@ -35,24 +61,49 @@ export function ContestPage() {
     }
 
     // Determine Contest Status
-    const now = new Date();
-    const startDate = new Date(contestData.startDate);
+    const getContestDates = (c: any) => {
+        const start = new Date(c.startDate);
+        let realStartDate = new Date(start);
 
-    // Parse endTime (HH:mm) on the same day as startDate or assuming it's correctly handled
-    const [endH, endM] = contestData.endTime.split(':').map(Number);
-    const endDate = new Date(startDate);
-    endDate.setHours(endH, endM, 0, 0);
+        if (c.startTime && c.startTime.includes(':') && c.startTime.length <= 5) {
+            const [startHours, startMinutes] = c.startTime.split(":").map(Number);
+            if (!isNaN(startHours) && !isNaN(startMinutes)) {
+                realStartDate.setHours(startHours, startMinutes, 0, 0);
+            }
+        }
+
+        let endDate = new Date(realStartDate);
+        if (c.endTime) {
+            if (c.endTime.includes('T') || c.endTime.length > 5) {
+                const possibleEndDate = new Date(c.endTime);
+                if (!isNaN(possibleEndDate.getTime())) {
+                    endDate = possibleEndDate;
+                }
+            } else if (c.endTime.includes(':')) {
+                const [endHours, endMinutes] = c.endTime.split(":").map(Number);
+                if (!isNaN(endHours) && !isNaN(endMinutes)) {
+                    endDate.setHours(endHours, endMinutes, 0, 0);
+                    if (endDate < realStartDate) {
+                        endDate.setDate(endDate.getDate() + 1);
+                    }
+                }
+            }
+        }
+        return { start: realStartDate, end: endDate };
+    };
+
+    const { start: realStart, end: realEnd } = getContestDates(contestData);
+    const now = new Date();
 
     let status: "UPCOMING" | "LIVE" | "PAST" = "UPCOMING";
-    if (now < startDate) {
+    if (now < realStart) {
         status = "UPCOMING";
-    } else if (now > endDate) {
+    } else if (now > realEnd) {
         status = "PAST";
     } else {
         status = "LIVE";
     }
 
-    const isStarted = status === "LIVE" || status === "PAST";
 
     return (
         <div className="min-h-screen bg-background text-foreground font-sans relative overflow-hidden">
@@ -88,7 +139,7 @@ export function ContestPage() {
                         <div className="flex flex-wrap gap-6 pt-2 text-sm text-foreground/80 font-medium">
                             <div className="flex items-center gap-2 bg-card/50 px-3 py-1.5 rounded-full border border-border/50">
                                 <Calendar className="w-4 h-4 text-primary" />
-                                <span>{startDate.toLocaleDateString()}</span>
+                                <span>{realStart.toLocaleDateString()}</span>
                             </div>
                             <div className="flex items-center gap-2 bg-card/50 px-3 py-1.5 rounded-full border border-border/50">
                                 <Clock className="w-4 h-4 text-primary" />
@@ -102,13 +153,23 @@ export function ContestPage() {
                     </div>
 
                     <div className="flex-shrink-0">
-                        <Button
-                            size="lg"
-                            onClick={() => navigate(`/contest/${id}/attempt`)}
-                            className="h-14 px-8 rounded-full text-base font-bold shadow-xl shadow-primary/20 hover:shadow-primary/40 transition-all hover:-translate-y-1"
-                        >
-                            Enter Arena <Play className="ml-2 w-4 h-4 fill-current" />
-                        </Button>
+                        {contestData.submission?.status === "COMPLETED" ? (
+                            <Button
+                                size="lg"
+                                onClick={() => navigate(`/contest/${id}/result`)}
+                                className="h-14 px-8 rounded-full text-base font-bold shadow-xl shadow-primary/20 hover:shadow-primary/40 transition-all hover:-translate-y-1 bg-green-600 hover:bg-green-700 text-white"
+                            >
+                                View Result <ArrowRight className="ml-2 w-4 h-4" />
+                            </Button>
+                        ) : (
+                            <Button
+                                size="lg"
+                                onClick={handleEnterContest}
+                                className="h-14 px-8 rounded-full text-base font-bold shadow-xl shadow-primary/20 hover:shadow-primary/40 transition-all hover:-translate-y-1"
+                            >
+                                {contestData.submission ? "Continue Attempt" : "Enter Arena"} <Play className="ml-2 w-4 h-4 fill-current" />
+                            </Button>
+                        )}
                     </div>
                 </div>
 

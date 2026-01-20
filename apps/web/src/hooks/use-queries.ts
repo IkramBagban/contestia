@@ -67,8 +67,15 @@ export function useContestForAttempt(id: string) {
 
 // --- Submission ---
 export function useStartContest() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (contestId: string) => api.post(`/contests/${contestId}/start`).then(res => res.data.data),
+    onSuccess: (_, contestId) => {
+      // Invalidate the attempt data so subsequent pages get the fresh submission
+      const user = queryClient.getQueryData<any>(['me']);
+      const userId = user?.id || 'guest';
+      queryClient.invalidateQueries({ queryKey: ['contest-attempt', contestId, userId] });
+    }
   });
 }
 

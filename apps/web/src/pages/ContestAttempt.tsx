@@ -30,7 +30,7 @@ import { RealtimeLeaderboard } from "@/components/domain/leaderboard/realtime-le
 export function ContestAttemptPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { data: contestData, isLoading, error } = useContestForAttempt(id || "");
+  const { data: contestData, isLoading, isFetching, error } = useContestForAttempt(id || "");
   const submitContest = useSubmitContest();
   const saveProgress = useSaveProgress();
 
@@ -76,14 +76,14 @@ export function ContestAttemptPage() {
       }
 
       // Initialize language from current question's saved state if it exists
-      const currentQId = contestData.questions[currentQuestionIndex].question.id;
+      const currentQId = contestData.questions?.[currentQuestionIndex]?.question?.id;
       if (rawAnswers[currentQId]?.languageId) {
         setSelectedLanguage(rawAnswers[currentQId].languageId);
       }
 
       // Only jump to first unanswered if there's no URL param
       if (!qParam) {
-        const nextIdx = Math.min(Object.keys(normalizedAnswers).length, contestData.questions.length - 1);
+        const nextIdx = Math.min(Object.keys(normalizedAnswers).length, contestData.questions?.length - 1);
         setCurrentQuestionIndex(nextIdx);
       }
     } else if (id) {
@@ -99,18 +99,58 @@ export function ContestAttemptPage() {
     setSearchParams({ q: currentQuestionIndex.toString() }, { replace: true });
   }, [currentQuestionIndex, setSearchParams]);
 
+  // Redirect if already submitted or if no submission exists
+  useEffect(() => {
+    if (!contestData) return;
+
+    if (contestData.submission?.status === "COMPLETED") {
+      navigate(`/contest/${id}/result`);
+      return;
+    }
+
+    if (!contestData.submission && !isLoading && !isFetching) {
+      toast.error("Please start the contest first");
+      navigate(`/contest/${id}`);
+    }
+  }, [contestData, id, navigate, isLoading, isFetching]);
+
   // Timer Logic
   useEffect(() => {
     if (!contestData) return;
 
     try {
-      const startDate = new Date(contestData.startDate);
-      // Assuming endTime is "HH:mm" on the same day as startDate as per current logic
-      // If contestData has duration, that would be better, but sticking to previous working logic
-      const [hours, minutes] = contestData.endTime.split(":").map(Number);
+      const getContestEndDate = (c: any) => {
+        const start = new Date(c.startDate);
+        let realStartDate = new Date(start);
 
-      const endDate = new Date(startDate);
-      endDate.setHours(hours, minutes, 0, 0);
+        if (c.startTime && c.startTime.includes(':') && c.startTime.length <= 5) {
+          const [startHours, startMinutes] = c.startTime.split(":").map(Number);
+          if (!isNaN(startHours) && !isNaN(startMinutes)) {
+            realStartDate.setHours(startHours, startMinutes, 0, 0);
+          }
+        }
+
+        if (c.endTime) {
+          if (c.endTime.includes('T') || c.endTime.length > 5) {
+            const possibleEndDate = new Date(c.endTime);
+            if (!isNaN(possibleEndDate.getTime())) return possibleEndDate;
+          } else if (c.endTime.includes(':')) {
+            const [endHours, endMinutes] = c.endTime.split(":").map(Number);
+            if (!isNaN(endHours) && !isNaN(endMinutes)) {
+              const endDate = new Date(realStartDate);
+              endDate.setHours(endHours, endMinutes, 0, 0);
+              if (endDate < realStartDate) endDate.setDate(endDate.getDate() + 1);
+              return endDate;
+            }
+          }
+        }
+        // Fallback
+        const fallback = new Date(realStartDate);
+        fallback.setHours(23, 59, 59, 999);
+        return fallback;
+      };
+
+      const endDate = getContestEndDate(contestData);
 
       const calculateTimeLeft = () => {
         const now = new Date();
@@ -265,7 +305,7 @@ export function ContestAttemptPage() {
           onSuccess: () => {
             localStorage.removeItem(`contest_${id}_answers`);
             toast.success("Contest submitted successfully!");
-            navigate("/dashboard");
+            navigate(`/contest/${id}/result`);
           },
           onError: () => {
             toast.error("Failed to submit contest. Please try again.");
@@ -300,26 +340,48 @@ export function ContestAttemptPage() {
   if (isLoading) return <div className="flex h-screen items-center justify-center bg-background"><span className="animate-pulse text-xl font-display font-medium text-foreground">Loading Arena...</span></div>;
   if (error || !contestData) return <div className="flex h-screen items-center justify-center text-destructive bg-background">Error loading contest.</div>;
 
-  const currentQuestion = contestData.questions[currentQuestionIndex].question;
-  const totalQuestions = contestData.questions.length;
+  const currentQuestion = contestData.questions?.[currentQuestionIndex]?.question;
+  const totalQuestions = contestData.questions?.length;
   const optionLabels = ['A', 'B', 'C', 'D', 'E', 'F'];
 
   const rank = contestData.submission?.rank ?? "N/A";
 
-  const isDSA = currentQuestion.type === "DSA"; // Assuming implicit type check or field availability
+  const isDSA = currentQuestion?.type === "DSA"; // Assuming implicit type check or field availability
   // Sometimes naming is 'MCQ' or 'DSA' in DB. Let's assume 'DSA' or Check if options exist?
   // User said "if the question is dsa". 
 
   // Calculate status for Leaderboard
-  const now = new Date();
-  const startDate = new Date(contestData.startDate);
-  const [endH, endM] = contestData.endTime.split(":").map(Number);
-  const endDate = new Date(startDate);
-  endDate.setHours(endH, endM, 0, 0);
+  const getContestStatus = (c: any) => {
+    const start = new Date(c.startDate);
+    let realStart = new Date(start);
+    if (c.startTime && c.startTime.includes(':') && c.startTime.length <= 5) {
+      const [h, m] = c.startTime.split(":").map(Number);
+      if (!isNaN(h) && !isNaN(m)) realStart.setHours(h, m, 0, 0);
+    }
 
-  let contestStatus: "UPCOMING" | "LIVE" | "PAST" = "LIVE"; // Default to LIVE if attempting
-  if (now > endDate) contestStatus = "PAST";
-  if (now < startDate) contestStatus = "UPCOMING";
+    let realEnd = new Date(realStart);
+    if (c.endTime) {
+      if (c.endTime.includes('T') || c.endTime.length > 5) {
+        const d = new Date(c.endTime);
+        if (!isNaN(d.getTime())) realEnd = d;
+      } else if (c.endTime.includes(':')) {
+        const [h, m] = c.endTime.split(":").map(Number);
+        if (!isNaN(h) && !isNaN(m)) {
+          realEnd.setHours(h, m, 0, 0);
+          if (realEnd < realStart) realEnd.setDate(realEnd.getDate() + 1);
+        }
+      }
+    } else {
+      realEnd.setHours(23, 59, 59, 999);
+    }
+
+    const now = new Date();
+    if (now < realStart) return "UPCOMING";
+    if (now > realEnd) return "PAST";
+    return "LIVE";
+  };
+
+  const contestStatus = getContestStatus(contestData);
 
   return (
     <div className="flex min-h-screen flex-col bg-background font-sans text-foreground transition-colors duration-300">
@@ -404,7 +466,7 @@ export function ContestAttemptPage() {
                     </div>
                   )}
                   <div className="rounded-md bg-muted px-3 py-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    {currentQuestion.points || 10} Points
+                    {currentQuestion?.points || 10} Points
                   </div>
                 </div>
               </div>
@@ -415,7 +477,7 @@ export function ContestAttemptPage() {
                     rehypePlugins={[rehypeRaw]}
                     remarkPlugins={[remarkGfm]}
                   >
-                    {currentQuestion.text || ""}
+                    {currentQuestion?.text || ""}
                   </ReactMarkdown>
                 </div>
               </div>
@@ -445,13 +507,13 @@ export function ContestAttemptPage() {
                 {/* Code Editor */}
                 <div className="h-[350px] overflow-hidden rounded-xl border-2 border-border shadow-sm">
                   <Editor
-                    key={`${currentQuestion.id}-${selectedLanguage}`}
+                    key={`${currentQuestion?.id}-${selectedLanguage}`}
                     height="100%"
                     language={getLanguage(selectedLanguage)}
                     theme="vs-dark"
-                    value={(typeof answers[currentQuestion.id] === 'object' ? answers[currentQuestion.id].value : answers[currentQuestion.id]) || "// Write your code here"}
-                    onChange={(val) => handleCodeChange(currentQuestion.id, val)}
-                    path={`question-${currentQuestion.id}`}
+                    value={(typeof answers[currentQuestion?.id] === 'object' ? answers[currentQuestion?.id].value : answers[currentQuestion?.id]) || "// Write your code here"}
+                    onChange={(val) => handleCodeChange(currentQuestion?.id, val)}
+                    path={`question-${currentQuestion?.id}`}
                     options={{
                       minimap: { enabled: false },
                       fontSize: 14,
@@ -560,14 +622,14 @@ export function ContestAttemptPage() {
             ) : (
               <div className="space-y-6">
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  {currentQuestion.options?.map((option: any, idx: number) => {
-                    const isSelected = answers[currentQuestion.id] === option.id;
-                    const isSubmitted = !!contestData.submission?.answers?.[currentQuestion.id];
+                  {currentQuestion?.options?.map((option: any, idx: number) => {
+                    const isSelected = answers[currentQuestion?.id] === option.id;
+                    const isSubmitted = !!contestData.submission?.answers?.[currentQuestion?.id];
 
                     return (
                       <div
                         key={option.id}
-                        onClick={() => !isSubmitted && handleOptionSelect(currentQuestion.id, option.id)}
+                        onClick={() => !isSubmitted && handleOptionSelect(currentQuestion?.id, option.id)}
                         className={cn(
                           "group relative flex cursor-pointer items-start gap-4 rounded-xl border-2 p-5 transition-all duration-200 ease-in-out",
                           isSelected
@@ -602,11 +664,11 @@ export function ContestAttemptPage() {
                   })}
                 </div>
 
-                {!contestData.submission?.answers?.[currentQuestion.id] && (
+                {!contestData.submission?.answers?.[currentQuestion?.id] && (
                   <div className="flex justify-end">
                     <Button
                       onClick={handleSubmitMCQ}
-                      disabled={!answers[currentQuestion.id] || saveProgress.isPending}
+                      disabled={!answers[currentQuestion?.id] || saveProgress.isPending}
                       className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold h-12 px-8 rounded-xl border-2 border-foreground shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] transition-all active:translate-y-[2px] active:shadow-none min-w-[160px]"
                     >
                       {saveProgress.isPending ? (
@@ -638,7 +700,7 @@ export function ContestAttemptPage() {
             </div>
 
             <div className="grid grid-cols-5 gap-2 sm:grid-cols-8 lg:grid-cols-3 xl:grid-cols-4">
-              {contestData.questions.map((q: any, idx: number) => {
+              {contestData.questions?.map((q: any, idx: number) => {
                 const questionId = q.question.id;
                 const isCurrent = currentQuestionIndex === idx;
                 const submissionEntry = contestData.submission?.answers?.[questionId];
