@@ -145,7 +145,6 @@ export const submitCodeController = async (req: ExtendedRequest, res: Response, 
 
         let newScore: number | undefined
         let pointsEarned = 0
-
         const isAllPassed = result.passed === result.total && result.total > 0;
 
         const submission = await prismaClient.submission.findUnique({
@@ -159,48 +158,51 @@ export const submitCodeController = async (req: ExtendedRequest, res: Response, 
             }
         });
 
-        if (submission) {
-            const currentAnswers = (submission.answers as Record<string, any>) || {};
-            const wasCorrect = currentAnswers[questionId]?.isCorrect === true;
-
-            if (isAllPassed && !wasCorrect) {
-                newScore = submission.score + question.points;
-                pointsEarned = question.points;
-            } else if (!isAllPassed && wasCorrect) {
-                newScore = submission.score - (currentAnswers[questionId].points || question.points);
-                pointsEarned = 0;
-            } else {
-                newScore = submission.score;
-            }
-
-            const updatedAnswers = {
-                ...currentAnswers,
-                [questionId]: {
-                    value: code,
-                    isCorrect: isAllPassed,
-                    points: isAllPassed ? question.points : 0,
-                    languageId
-                }
-            };
-
-            await prismaClient.submission.update({
-                where: { id: submission.id },
-                data: {
-                    score: newScore,
-                    answers: updatedAnswers
-                }
-            });
-
-            await redisManager.redis.zadd(`contest:${contestId}:leaderboard`, newScore, userId);
+        if (!submission) {
+            const err = new Error("Submission not found. Please start the contest first.");
+            (err as any).status = 404;
+            throw err;
         }
+
+        const currentAnswers = (submission.answers as Record<string, any>) || {};
+        const wasCorrect = currentAnswers[questionId]?.isCorrect === true;
+
+        if (isAllPassed && !wasCorrect) {
+            newScore = submission.score + question.points;
+            pointsEarned = question.points;
+        } else if (!isAllPassed && wasCorrect) {
+            newScore = submission.score - (currentAnswers[questionId].points || question.points);
+            pointsEarned = 0;
+        } else {
+            newScore = submission.score;
+        }
+        const updatedAnswers = {
+            ...currentAnswers,
+            [questionId]: {
+                value: code,
+                isCorrect: isAllPassed,
+                points: isAllPassed ? question.points : 0,
+                languageId
+            }
+        };
+
+        await prismaClient.submission.update({
+            where: { id: submission.id },
+            data: {
+                score: newScore,
+                answers: updatedAnswers
+            }
+        });
+
+        await redisManager.redis.zadd(`contest:${contestId}:leaderboard`, newScore, userId);
 
         res.json({
             ...result,
             score: newScore,
             pointsEarned,
             submitted: true
-        })
+        });
     } catch (error) {
-        next(error)
+        next(error);
     }
-}
+};

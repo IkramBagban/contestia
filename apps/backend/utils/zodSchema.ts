@@ -26,8 +26,9 @@ export const optionSchema = z.object({
 });
 export const testSchema = z.object({
   questionId: z.string().optional(),
-  input: z.string(),
-  output: z.string(),
+  input: z.any(),
+  expectedOutput: z.any(),
+  isHidden: z.boolean().default(false),
 });
 
 export const createQuestionSchema = z
@@ -35,6 +36,7 @@ export const createQuestionSchema = z
     text: z.string(),
     type: z.enum(["MCQ", "DSA"]),
     points: z.number(),
+    funcName: z.string().optional().default(""),
 
     options: z.array(optionSchema).optional(),
     testCases: z.array(testSchema).optional(),
@@ -48,13 +50,21 @@ export const createQuestionSchema = z
           code: "custom",
         });
       }
-    }
-    else if (data.type === "DSA" && (!data.testCases || data.testCases.length < 1)) {
-      ctx.addIssue({
-        path: ["testCases"],
-        message: "Test cases are required for DSA questions",
-        code: "custom",
-      });
+    } else if (data.type === "DSA") {
+      if (!data.funcName || data.funcName.trim() === "") {
+        ctx.addIssue({
+          path: ["funcName"],
+          message: "Function name is required for DSA questions",
+          code: "custom",
+        });
+      }
+      if (!data.testCases || data.testCases.length < 1) {
+        ctx.addIssue({
+          path: ["testCases"],
+          message: "Test cases are required for DSA questions",
+          code: "custom",
+        });
+      }
     }
   });
 

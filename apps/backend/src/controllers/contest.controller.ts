@@ -240,26 +240,47 @@ export const startContest = async (
     }
 
     // Check if contest has ended
-    const startDate = new Date(contest.startDate);
-    const [hours, minutes] = contest.endTime ? contest.endTime.split(":").map(Number) : [23, 59];
-    const endDate = new Date(startDate);
-    endDate.setHours(hours, minutes, 0, 0);
+    const getContestDates = (c: any) => {
+      const start = new Date(c.startDate);
+      let realStartDate = new Date(start);
 
-    // If start time is also important to block future contests:
-    const [startH, startM]: number[] = contest.startTime ? contest.startTime.split(":").map(Number) : [0, 0];
-    const realStartDate = new Date(startDate);
-    realStartDate.setHours(startH, startM, 0, 0);
+      if (c.startTime && c.startTime.includes(':') && c.startTime.length <= 5) {
+        const [startHours, startMinutes] = c.startTime.split(":").map(Number);
+        if (!isNaN(startHours) && !isNaN(startMinutes)) {
+          realStartDate.setHours(startHours, startMinutes, 0, 0);
+        }
+      }
 
+      let realEndDate = new Date(realStartDate);
+      if (c.endTime) {
+        if (c.endTime.includes('T') || c.endTime.length > 5) {
+          const possibleEndDate = new Date(c.endTime);
+          if (!isNaN(possibleEndDate.getTime())) {
+            realEndDate = possibleEndDate;
+          }
+        } else if (c.endTime.includes(':')) {
+          const [endHours, endMinutes] = c.endTime.split(":").map(Number);
+          if (!isNaN(endHours) && !isNaN(endMinutes)) {
+            realEndDate.setHours(endHours, endMinutes, 0, 0);
+            if (realEndDate < realStartDate) {
+              realEndDate.setDate(realEndDate.getDate() + 1);
+            }
+          }
+        }
+      }
+      return { start: realStartDate, end: realEndDate };
+    };
+
+    const { start: realStart, end: realEnd } = getContestDates(contest);
     const now = new Date();
 
-    if (now > endDate) {
+    if (now > realEnd) {
       throw Object.assign(new Error("Contest has ended"), { status: 400 });
     }
 
-    // Optional: Block early access if strict
-    // if (now < realStartDate) {
-    //      throw Object.assign(new Error("Contest has not started yet"), { status: 400 });
-    // }
+    if (now < realStart) {
+      throw Object.assign(new Error("Contest has not started yet"), { status: 400 });
+    }
 
     let submission = await prismaClient.submission.findUnique({
       where: {
@@ -270,7 +291,11 @@ export const startContest = async (
       },
     });
 
-    if (!submission) {
+    if (submission) {
+      if (submission.status === "COMPLETED") {
+        throw Object.assign(new Error("Contest already submitted"), { status: 400 });
+      }
+    } else {
       submission = await prismaClient.submission.create({
         data: {
           userId,
@@ -328,15 +353,34 @@ export const submitContest = async (
     });
 
     let score = 0;
+    const existingAnswers = (submission.answers as Record<string, any>) || {};
+    const richAnswers: Record<string, any> = { ...existingAnswers };
 
     for (const item of contestQuestions) {
       const q = item.question;
-      const selectedOptionId = answers[q.id];
-      if (selectedOptionId) {
+
+      if (q.type === "MCQ") {
+        const selectedOptionId = answers[q.id];
         const correctOption = q.options.find((o) => o.isCorrect);
-        if (correctOption && correctOption.id === selectedOptionId) {
-          score += q.points;
+        const isCorrect = !!(selectedOptionId && correctOption && correctOption.id === selectedOptionId);
+
+        if (selectedOptionId) {
+          richAnswers[q.id] = {
+            value: selectedOptionId,
+            isCorrect,
+            points: isCorrect ? q.points : 0
+          };
         }
+      }
+      // For DSA, we rely on existingAnswers which were set by Judge0 submit-code
+      // We don't overwrite them with raw code from the body unless we want to re-validate (which we don't here)
+    }
+
+    // Calculate total score from final merged richAnswers
+    for (const qId in richAnswers) {
+      const entry = richAnswers[qId];
+      if (entry && typeof entry === 'object' && entry.isCorrect === true) {
+        score += entry.points || 0;
       }
     }
 
@@ -346,9 +390,11 @@ export const submitContest = async (
         status: "COMPLETED",
         submittedAt: new Date(),
         score,
-        answers: answers || {},
+        answers: richAnswers,
       },
     });
+
+    await redisManager.redis.zadd(`contest:${id}:leaderboard`, score, userId);
 
     res.status(200).json({
       success: true,
