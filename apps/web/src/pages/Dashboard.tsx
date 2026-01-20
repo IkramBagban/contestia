@@ -2,19 +2,21 @@ import { useState } from "react";
 import { useContests, useLogout, useMe, useStartContest } from "@/hooks/use-queries";
 import {
     Loader2, LogOut, Trophy, Calendar, Clock, ArrowRight,
-    LayoutDashboard, Bell, Zap, CheckCircle2, AlertCircle
+    Bell, Zap
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { format, isPast, isFuture, isWithinInterval } from "date-fns";
 import { cn } from "@/lib/utils";
+import { VantaLoader } from "@/components/ui/vanta-loader";
 
 export function DashboardPage() {
     const { data: contestsRaw, isLoading: isLoadingContests } = useContests();
     const { mutate: logout } = useLogout();
     const { data: user, isLoading: isLoadingUser } = useMe();
-    const { mutate: startContest } = useStartContest();
+    const { mutate: startContest, isPending: isStarting } = useStartContest();
+    const [startingId, setStartingId] = useState<string | null>(null);
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<"live" | "upcoming" | "past">("live");
 
@@ -28,11 +30,13 @@ export function DashboardPage() {
     };
 
     const handleEnterContest = (contestId: string) => {
+        setStartingId(contestId);
         startContest(contestId, {
             onSuccess: () => {
                 navigate(`/contest/${contestId}/attempt`);
             },
             onError: (err: any) => {
+                setStartingId(null);
                 const msg = err.response?.data?.error || err.response?.data?.message || "Failed to start contest";
                 // Allow re-entry if already started
                 if (msg.includes("started") || msg.includes("already submitted")) {
@@ -124,59 +128,79 @@ export function DashboardPage() {
     if (isLoading) {
         return (
             <div className="flex h-screen items-center justify-center bg-background">
-                <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                <VantaLoader text="SYNCING MISSIONS..." />
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
+        <div className="min-h-screen bg-background text-foreground transition-all duration-300 selection:bg-primary selection:text-white">
 
             {/* Top Navigation */}
-            <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-md">
+            <header className="sticky top-0 z-30 border-b border-foreground/10 bg-background/95 backdrop-blur-md">
                 <div className="container mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-                    <div className="flex items-center gap-2">
-                        <img src="/logo.png" alt="Contestia Logo" className="h-8 w-8 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
-                        <span className="font-display text-lg font-bold">Contestia</span>
+                    <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-lg border-2 border-foreground bg-primary shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                            <Trophy className="h-5 w-5 text-primary-foreground" />
+                        </div>
+                        <span className="font-display text-xl font-bold tracking-tight uppercase">Contestia</span>
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary">
+                        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary transition-all rounded-full">
                             <Bell className="h-5 w-5" />
                         </Button>
-                        <div className="h-8 w-[1px] bg-border"></div>
+                        <div className="h-6 w-[1px] bg-foreground/10 mx-1"></div>
                         <div className="flex items-center gap-3">
-                            <span className="hidden text-sm font-medium sm:block">{user?.name}</span>
-                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-xs font-bold text-secondary-foreground">
+                            <div className="hidden flex-col items-end sm:flex leading-tight text-right">
+                                <span className="text-sm font-bold tracking-tight">{user?.name}</span>
+                                <span className="text-[10px] text-muted-foreground font-bold tracking-wider uppercase">Global Rank #12</span>
+                            </div>
+                            <div className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-foreground bg-secondary text-xs font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                                 {user?.name?.charAt(0).toUpperCase() || "U"}
                             </div>
-                            <Button variant="ghost" size="icon" onClick={handleLogout} className="text-muted-foreground hover:text-destructive">
-                                <LogOut className="h-5 w-5" />
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={handleLogout}
+                                className="hover:bg-destructive/10 hover:text-destructive rounded-full transition-all"
+                            >
+                                <LogOut className="h-4 w-4" />
                             </Button>
                         </div>
                     </div>
                 </div>
             </header>
 
-            <main className="container mx-auto max-w-7xl px-4 py-8 sm:px-6">
+            <main className="container mx-auto max-w-7xl px-4 py-12 sm:px-6">
 
-                <div className="mb-8 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-                    <h1 className="font-display text-3xl font-bold tracking-tight">Contests</h1>
+                <div className="mb-12 flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+                    <div className="space-y-2">
+                        <div className="inline-block rounded-md border border-foreground bg-yellow-400 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] mb-1">
+                            Awaiting Orders
+                        </div>
+                        <h1 className="font-display text-4xl md:text-5xl font-black tracking-tight uppercase leading-none">
+                            Available Arenas
+                        </h1>
+                        <p className="text-muted-foreground font-medium text-lg max-w-xl">
+                            Select your battlefield and prove your dominance.
+                        </p>
+                    </div>
 
-                    {/* Custom Tabs */}
-                    <div className="flex rounded-full border border-border bg-card p-1">
+                    {/* Soft Neo-Brutalist Tabs */}
+                    <div className="flex p-1 gap-1.5 rounded-xl border border-foreground/20 bg-muted/30">
                         {(["live", "upcoming", "past"] as const).map((tab) => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
                                 className={cn(
-                                    "rounded-full px-5 py-2 text-sm font-medium transition-all outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                                    "rounded-lg px-6 py-2 text-[11px] font-bold uppercase tracking-wider transition-all outline-none",
                                     activeTab === tab
-                                        ? "bg-primary text-primary-foreground shadow-sm"
-                                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                                        ? "bg-background text-foreground border border-foreground shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                                        : "text-muted-foreground hover:text-foreground hover:bg-background/50"
                                 )}
                             >
-                                {tab === 'live' ? 'Live Now' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+                                {tab === 'live' ? 'Live Now' : tab}
                             </button>
                         ))}
                     </div>
@@ -184,74 +208,82 @@ export function DashboardPage() {
 
                 <div className="space-y-6">
                     {displayedContests.length === 0 ? (
-                        <div className="flex h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card/50 p-8 text-center animate-fade-in">
-                            <div className="mb-4 rounded-full bg-muted p-3">
-                                <Trophy className="h-6 w-6 text-muted-foreground" />
+                        <div className="flex h-80 flex-col items-center justify-center rounded-3xl border-2 border-dashed border-foreground/10 bg-muted/5 p-12 text-center animate-fade-in shadow-sm">
+                            <div className="mb-6 rounded-2xl border border-foreground bg-background p-5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                                <Trophy className="h-10 w-10 text-muted-foreground/30" />
                             </div>
-                            <h3 className="text-lg font-medium">No {activeTab === 'live' ? 'live' : activeTab} contests found</h3>
-                            <p className="max-w-sm text-sm text-muted-foreground">Check other tabs or come back later for more challenges.</p>
+                            <h3 className="text-2xl font-bold uppercase tracking-tight mb-2">Sector Clear</h3>
+                            <p className="max-w-md text-muted-foreground font-medium uppercase tracking-tight">No active missions detected. Await further briefing.</p>
                         </div>
                     ) : (
-                        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 animate-slide-up">
+                        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 animate-slide-up">
                             {displayedContests.map((contest: any) => (
                                 <div
                                     key={contest.id}
                                     onClick={() => navigate(`/contest/${contest.id}`)}
-                                    className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-sm transition-all hover:-translate-y-1 hover:border-primary/50 hover:shadow-xl hover:shadow-primary/5 cursor-pointer"
+                                    className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-foreground bg-card transition-all hover:-translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.05)] shadow-sm cursor-pointer"
                                 >
-                                    <div className="absolute top-0 right-0 p-6 opacity-5 transition-opacity group-hover:opacity-10">
-                                        <Trophy className="h-24 w-24 text-primary rotate-12" />
-                                    </div>
+                                    <div className="p-8 pb-4">
+                                        <div className="flex items-center justify-between mb-6">
+                                            <ContestStatusBadge status={activeTab} />
+                                            <div className="flex items-center gap-1.5 rounded-md border border-foreground bg-background px-2 py-0.5 text-[10px] font-bold uppercase tracking-tighter shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
+                                                <Zap className="h-3 w-3 text-yellow-500 fill-yellow-500" />
+                                                {contest.totalPoints} PTS
+                                            </div>
+                                        </div>
 
-                                    <div className="relative z-10">
-                                        <ContestStatusBadge status={activeTab} />
-
-                                        <h3 className="mt-4 font-display text-2xl font-bold leading-tight tracking-tight group-hover:text-primary transition-colors">
+                                        <h3 className="font-display text-2xl font-black leading-tight tracking-tight uppercase group-hover:text-primary transition-colors mb-4 break-words">
                                             {contest.title}
                                         </h3>
 
-                                        <div className="mt-4 flex items-center gap-4 text-sm text-muted-foreground">
-                                            <div className="flex items-center gap-1.5">
-                                                <Calendar className="h-4 w-4 text-primary/70" />
+                                        <div className="flex flex-wrap items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-6">
+                                            <div className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-foreground/10 bg-muted/50">
+                                                <Calendar className="h-3 w-3" />
                                                 <span>{format(new Date(contest.startDate), "MMM d")}</span>
                                             </div>
-                                            <div className="flex items-center gap-1.5">
-                                                <Clock className="h-4 w-4 text-primary/70" />
+                                            <div className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-foreground/10 bg-primary/5 text-primary">
+                                                <Clock className="h-3 w-3" />
                                                 <span>
                                                     {format(new Date(contest.startDate), "HH:mm")} -
                                                     {contest.endTime && contest.endTime.includes('T') ? format(new Date(contest.endTime), "HH:mm") : contest.endTime}
                                                 </span>
                                             </div>
-                                            <div className="flex items-center gap-1.5">
-                                                <Trophy className="h-4 w-4 text-yellow-500/80" />
-                                                <span>{contest.totalPoints} Pts</span>
-                                            </div>
                                         </div>
 
-                                        <p className="mt-4 line-clamp-2 text-sm text-muted-foreground/80 leading-relaxed font-normal">
-                                            {contest.description?.replace(/<[^>]*>?/gm, "") || "No description provided."}
+                                        <p className="line-clamp-3 text-sm text-foreground/70 leading-relaxed font-medium">
+                                            {contest.description?.replace(/<[^>]*>?/gm, "") || "No mission protocol defined. Proceed with caution."}
                                         </p>
                                     </div>
 
-                                    <div className="relative z-10 mt-8 pt-6 border-t border-border/50">
+                                    <div className="p-6 pt-2">
                                         {activeTab === "live" ? (
                                             <Button
-                                                className="w-full justify-between group-hover:bg-primary group-hover:text-primary-foreground shadow-lg shadow-primary/20"
+                                                className="h-12 w-full justify-between rounded-xl border border-foreground bg-primary px-6 text-xs font-bold uppercase tracking-wider text-primary-foreground shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     handleEnterContest(contest.id);
                                                 }}
+                                                disabled={isStarting && startingId === contest.id}
                                             >
-                                                Enter Arena
-                                                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                                                {isStarting && startingId === contest.id ? (
+                                                    <div className="flex w-full items-center justify-center gap-2">
+                                                        <span>Starting...</span>
+                                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        Access Arena
+                                                        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                                                    </>
+                                                )}
                                             </Button>
                                         ) : activeTab === "past" ? (
-                                            <Button variant="outline" className="w-full gap-2 cursor-not-allowed opacity-70" disabled>
-                                                Ended <LockIcon className="h-3 w-3" />
+                                            <Button variant="outline" className="h-12 w-full gap-2 rounded-xl border border-foreground/20 bg-muted/10 text-[10px] font-bold uppercase tracking-widest opacity-60 cursor-not-allowed" disabled>
+                                                Ended <LockIcon className="h-3.5 w-3.5" />
                                             </Button>
                                         ) : (
-                                            <Button variant="secondary" className="w-full cursor-not-allowed opacity-80" disabled>
-                                                Starts Soon
+                                            <Button variant="secondary" className="h-12 w-full gap-2 rounded-xl border border-foreground/10 bg-secondary/50 text-[10px] font-bold uppercase tracking-widest opacity-80 cursor-not-allowed" disabled>
+                                                Upcoming
                                             </Button>
                                         )}
                                     </div>
@@ -266,13 +298,15 @@ export function DashboardPage() {
     );
 }
 
+
+
 function ContestStatusBadge({ status }: { status: "live" | "upcoming" | "past" }) {
     if (status === "live") {
         return (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500/10 px-2.5 py-0.5 text-xs font-bold text-red-500 ring-1 ring-insert ring-red-500/20">
-                <span className="relative flex h-2 w-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-red-400/10 px-2.5 py-1 text-[10px] font-bold text-red-500 border border-red-400/20">
+                <span className="relative flex h-1.5 w-1.5">
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75"></span>
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500"></span>
+                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-red-500"></span>
                 </span>
                 LIVE NOW
             </span>
@@ -280,13 +314,13 @@ function ContestStatusBadge({ status }: { status: "live" | "upcoming" | "past" }
     }
     if (status === "upcoming") {
         return (
-            <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-bold text-primary ring-1 ring-insert ring-primary/20">
+            <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold text-primary border border-primary/20">
                 UPCOMING
             </span>
         )
     }
     return (
-        <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-bold text-muted-foreground ring-1 ring-insert ring-border">
+        <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-1 text-[10px] font-bold text-muted-foreground border border-border">
             ENDED
         </span>
     )
@@ -302,7 +336,7 @@ function LockIcon(props: any) {
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
+            strokeWidth="2.5"
             strokeLinecap="round"
             strokeLinejoin="round"
         >
@@ -311,3 +345,4 @@ function LockIcon(props: any) {
         </svg>
     )
 }
+

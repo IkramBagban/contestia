@@ -1,177 +1,214 @@
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { useNavigate } from "react-router-dom"
-import { 
-    Trophy, Code2, ArrowRight, Zap, Globe2, 
-    Terminal, Cpu, ChevronRight, User
+import {
+    Trophy, Code2, ArrowRight, Zap, Globe2,
+    Terminal, User, MousePointer2, Shield
 } from "lucide-react"
 
 export function LandingPage() {
-  const navigate = useNavigate()
+    const navigate = useNavigate()
 
-  return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-background text-foreground">
-      
-      {/* BACKGROUND ELEMENTS */}
-      {/* A subtle grid pattern usually helps technical products feel "engineered" */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
-      
-      {/* Glowing Blob for ambiance */}
-      <div className="absolute -top-40 left-1/2 h-[500px] w-[500px] -translate-x-1/2 rounded-full bg-primary/20 blur-[100px] sm:h-[800px] sm:w-[800px] sm:blur-[120px]" />
+    return (
+        <div className="relative min-h-screen w-full overflow-hidden bg-background text-foreground selection:bg-primary selection:text-white">
 
-      {/* NAVBAR: Minimal, frosted glass */}
-      <header className="fixed top-0 z-50 w-full border-b border-white/5 bg-background/50 backdrop-blur-xl">
-        <div className="container mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/20 text-primary">
-                <Terminal className="h-5 w-5" />
-            </div>
-            <span className="font-display text-lg font-bold tracking-tight">Contestia</span>
-          </div>
-          
-          <div className="hidden items-center gap-8 md:flex">
-             {["Featuresa", "Contests", "Leaderboard"].map((item) => (
-                <button key={item} className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
-                    {item}
-                </button>
-             ))}
-          </div>
+            {/* BACKGROUND ELEMENTS */}
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:40px_40px]"></div>
 
-          <div className="flex items-center gap-3">
-             <Button variant="ghost" className="hidden text-muted-foreground hover:text-foreground sm:flex" onClick={() => navigate("/login")}>
-                 Sign in
-             </Button>
-             <Button onClick={() => navigate("/signup")} className="h-9 rounded-full px-5 text-sm font-semibold shadow-lg shadow-primary/25 transition-all hover:scale-105 active:scale-95">
-                 Get Started
-             </Button>
-          </div>
+            {/* Dynamic Blobs */}
+            <div className="absolute -top-40 left-1/4 h-[600px] w-[600px] rounded-full bg-primary/5 blur-[120px] animate-pulse" />
+            <div className="absolute top-1/2 -right-20 h-[500px] w-[500px] rounded-full bg-blue-500/5 blur-[100px]" />
+
+            {/* NAVBAR */}
+            <header className="fixed top-0 z-50 w-full border-b border-foreground/5 bg-background/80 backdrop-blur-xl">
+                <div className="container mx-auto flex h-20 max-w-7xl items-center justify-between px-6">
+                    <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl border-2 border-foreground bg-primary shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                            <Terminal className="h-6 w-6 text-primary-foreground" />
+                        </div>
+                        <span className="font-display text-2xl font-black tracking-tighter uppercase italic">Contestia</span>
+                    </div>
+
+                    <div className="hidden items-center gap-10 lg:flex">
+                        {["Missions", "Leaderboard", "Challengers"].map((item) => (
+                            <button key={item} className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground transition-all hover:text-primary hover:tracking-[0.3em]">
+                                {item}
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                        <Button variant="ghost" className="hidden text-xs font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground sm:flex" onClick={() => navigate("/login")}>
+                            Identify
+                        </Button>
+                        <Button onClick={() => navigate("/signup")} className="h-11 rounded-xl border-2 border-foreground bg-foreground px-6 text-xs font-bold uppercase tracking-widest text-background shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none active:scale-95">
+                            Join System
+                        </Button>
+                    </div>
+                </div>
+            </header>
+
+            <main className="relative z-10 pt-40 pb-20">
+
+                {/* HERO SECTION */}
+                <section className="container mx-auto max-w-6xl px-4 text-center">
+                    <div className="mx-auto mb-8 flex w-fit animate-fade-in items-center gap-2.5 rounded-full border border-foreground/10 bg-muted/50 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-primary backdrop-blur-sm shadow-sm">
+                        <span className="relative flex h-2 w-2">
+                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75"></span>
+                            <span className="relative inline-flex h-2 w-2 rounded-full bg-primary"></span>
+                        </span>
+                        Live Arena Synchronized
+                    </div>
+
+                    <h1 className="animate-slide-up text-6xl font-black tracking-tight text-foreground sm:text-8xl md:text-9xl uppercase leading-[0.85] italic">
+                        Code. Compete. <br className="hidden sm:block" />
+                        <span className="text-primary not-italic">Conquer.</span>
+                    </h1>
+
+                    <p className="mx-auto mt-10 max-w-2xl animate-fade-in text-lg text-muted-foreground font-medium md:text-xl leading-relaxed" style={{ animationDelay: "0.2s" }}>
+                        Next-generation algorithm arena. Real-time execution,
+                        high-precision rankings, and a lethal interface for elite developers.
+                    </p>
+
+                    <div className="mt-12 flex animate-slide-up flex-col items-center justify-center gap-6 sm:flex-row" style={{ animationDelay: "0.4s" }}>
+                        <Button size="lg" className="h-16 min-w-[200px] rounded-2xl border-2 border-foreground bg-primary text-primary-foreground text-sm font-black uppercase tracking-widest shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all" onClick={() => navigate("/dashboard")}>
+                            Enter Arena <ArrowRight className="ml-2 h-5 w-5" />
+                        </Button>
+                        <Button size="lg" variant="outline" className="h-16 min-w-[200px] rounded-2xl border-2 border-foreground bg-background text-sm font-black uppercase tracking-widest hover:bg-muted transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)]">
+                            Briefing Docs
+                        </Button>
+                    </div>
+                </section>
+
+                {/* STATS */}
+                <section className="container mx-auto mt-32 max-w-7xl px-4">
+                    <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                        {[
+                            { label: "Elite Operatives", value: "24K+", icon: User },
+                            { label: "Successful Missions", value: "2.8M", icon: Target },
+                            { label: "Arena Uptime", value: "99.9%", icon: Zap },
+                            { label: "Global Rankers", value: "150+", icon: Trophy },
+                        ].map((stat, idx) => {
+                            const Icon = stat.icon;
+                            return (
+                                <div key={idx} className="group rounded-3xl border border-foreground/5 bg-muted/20 p-8 transition-all hover:bg-muted/40 hover:border-foreground/10">
+                                    <Icon className="h-6 w-6 text-primary/40 mb-4 transition-colors group-hover:text-primary" />
+                                    <div className="font-display text-3xl font-black text-foreground mb-1 tracking-tighter uppercase">{stat.value}</div>
+                                    <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{stat.label}</div>
+                                </div>
+                            )
+                        })}
+                    </div>
+                </section>
+
+                {/* FEATURES BENTO */}
+                <section className="container mx-auto mt-40 max-w-7xl px-4">
+                    <div className="mb-20 space-y-4">
+                        <Badge className="bg-foreground text-background font-black uppercase tracking-widest text-[9px] rounded-sm">System Specs</Badge>
+                        <h2 className="text-4xl md:text-5xl font-black tracking-tight text-foreground uppercase italic">Engineered for Performance</h2>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+                        <div className="md:col-span-2 rounded-[2.5rem] border-2 border-foreground bg-card p-10 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,0.05)] relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 p-8 opacity-5 transition-opacity group-hover:opacity-10">
+                                <Terminal className="h-64 w-64" />
+                            </div>
+                            <div className="relative z-10 flex h-full flex-col justify-between gap-12">
+                                <div className="space-y-6">
+                                    <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-foreground bg-primary/10 text-primary shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+                                        <Code2 className="h-7 w-7" />
+                                    </div>
+                                    <h3 className="text-3xl font-black uppercase tracking-tight">Real-time <br /> Execution Engine</h3>
+                                    <p className="max-w-md text-muted-foreground font-medium leading-relaxed">
+                                        Deploy your code against massive datasets.
+                                        Millisecond precision execution across C++, Python, Java, and JS.
+                                    </p>
+                                </div>
+                                <div className="w-full overflow-hidden rounded-2xl border border-foreground/10 bg-zinc-950 p-6 font-mono text-sm text-zinc-400">
+                                    <div className="flex gap-2 mb-4">
+                                        <div className="h-2.5 w-2.5 rounded-full bg-red-500/40"></div>
+                                        <div className="h-2.5 w-2.5 rounded-full bg-yellow-500/40"></div>
+                                        <div className="h-2.5 w-2.5 rounded-full bg-green-500/40"></div>
+                                    </div>
+                                    <div className="space-y-1.5 opacity-80 text-xs">
+                                        <p><span className="text-pink-500">async function</span> <span className="text-blue-400">optimize</span>(payload) {"{"}</p>
+                                        <p className="pl-4 text-zinc-500">// Initialize neural pathway</p>
+                                        <p className="pl-4"><span className="text-pink-500">const</span> result = <span className="text-pink-500">await</span> engine.<span className="text-blue-400">process</span>(payload);</p>
+                                        <p className="pl-4"><span className="text-pink-500">return</span> result.<span className="text-blue-400">map</span>(node {"=>"} node.<span className="text-blue-400">score</span> * <span className="text-amber-500">2</span>);</p>
+                                        <p>{"}"}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col gap-8">
+                            <div className="flex-1 rounded-[2.5rem] border-2 border-foreground bg-muted/30 p-10 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] hover:bg-muted/50 transition-colors">
+                                <Globe2 className="mb-6 h-10 w-10 text-primary" strokeWidth={2.5} />
+                                <h3 className="text-2xl font-black uppercase tracking-tight mb-4">Global Network</h3>
+                                <p className="text-sm text-muted-foreground font-medium leading-relaxed">Compete with engineers worldwide on our low-latency global grid.</p>
+                            </div>
+                            <div className="flex-1 rounded-[2.5rem] border-2 border-foreground bg-primary p-10 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-primary-foreground group">
+                                <Shield className="mb-6 h-10 w-10 text-primary-foreground group-hover:animate-bounce" strokeWidth={2.5} />
+                                <h3 className="text-2xl font-black uppercase tracking-tight mb-4">Secure Terminal</h3>
+                                <p className="text-sm text-primary-foreground/80 font-medium leading-relaxed">Robust sandboxing ensures your mission remains isolated and secure.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                {/* FINAL CTA */}
+                <section className="mt-40 bg-foreground py-32 text-background relative overflow-hidden">
+                    <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,#fff_1px,transparent_1px)] bg-[size:20px_20px]"></div>
+                    <div className="container mx-auto max-w-4xl px-4 text-center relative z-10">
+                        <h2 className="text-5xl md:text-7xl font-black tracking-tighter uppercase italic leading-none mb-8">Ready to climb the system?</h2>
+                        <p className="mx-auto max-w-2xl text-lg md:text-xl text-background/60 font-medium mb-12">
+                            Join the ranks of elite developers solving the worlds hardest
+                            algorithmic challenges. Zero latency. Maximum impact.
+                        </p>
+                        <Button size="lg" className="h-16 rounded-2xl border-2 border-background bg-background px-12 text-sm font-black uppercase tracking-[0.2em] text-foreground hover:bg-background/90 transition-all active:scale-95 shadow-[6px_6px_0px_0px_rgba(255,255,255,0.2)]" onClick={() => navigate("/signup")}>
+                            Boot System <MousePointer2 className="ml-3 h-5 w-5" />
+                        </Button>
+                    </div>
+                </section>
+
+            </main>
+
+            {/* Footer */}
+            <footer className="border-t border-foreground/5 py-16 bg-background">
+                <div className="container mx-auto max-w-7xl px-6 flex flex-col md:flex-row justify-between items-center gap-8">
+                    <div className="flex items-center gap-2 opacity-50">
+                        <Terminal className="h-5 w-5" />
+                        <span className="font-black uppercase tracking-tighter text-sm">Contestia v2.0</span>
+                    </div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground">© 2026 Crafted for the Elite. Unauthorized access prohibited.</p>
+                    <div className="flex gap-6">
+                        {["Security", "Privacy", "Status"].map(link => (
+                            <span key={link} className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 hover:text-primary cursor-pointer transition-colors">{link}</span>
+                        ))}
+                    </div>
+                </div>
+            </footer>
         </div>
-      </header>
+    )
+}
 
-      <main className="relative z-10 pt-32 pb-20">
-        
-        {/* HERO SECTION */}
-        <section className="container mx-auto max-w-5xl px-4 text-center">
-            <div className="mx-auto mb-6 flex w-fit animate-fade-in items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-xs font-semibold text-primary backdrop-blur-sm">
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75"></span>
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-primary"></span>
-                </span>
-                Weekly Sprint Live Now
-            </div>
-
-            <h1 className="animate-slide-up bg-gradient-to-br from-foreground to-foreground/60 bg-clip-text text-5xl font-extrabold tracking-tight text-transparent sm:text-7xl md:text-8xl lg:leading-[1.1]">
-                Code. Compete. <br className="hidden sm:block" />
-                <span className="bg-gradient-to-r from-primary via-violet-500 to-indigo-600 bg-clip-text text-transparent">Conquer.</span>
-            </h1>
-            
-            <p className="mx-auto mt-6 max-w-2xl animate-slide-up text-lg text-muted-foreground sm:text-xl md:mt-8" style={{ animationDelay: "0.1s" }}>
-                The next-generation competitive programming platform designed for performance. 
-                Real-time execution, millisecond-precision rankings, and a beautiful interface.
-            </p>
-
-            <div className="mt-10 flex animate-slide-up flex-col items-center justify-center gap-4 sm:flex-row" style={{ animationDelay: "0.2s" }}>
-                <Button size="lg" className="h-12 min-w-[160px] rounded-full text-base" onClick={() => navigate("/dashboard")}>
-                    Enter Arena <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-                <Button size="lg" variant="outline" className="h-12 min-w-[160px] rounded-full border-primary/20 bg-primary/5 text-base hover:bg-primary/10">
-                    View Problem Set
-                </Button>
-            </div>
-        </section>
-
-        {/* STATS / SOCIAL PROOF */}
-        <section className="container mx-auto mt-20 max-w-7xl animate-fade-in px-4" style={{ animationDelay: "0.4s" }}>
-            <div className="grid grid-cols-2 gap-8 border-y border-white/5 py-8 opacity-60 md:grid-cols-4">
-                {[
-                    { label: "Active Users", value: "12,000+" },
-                    { label: "Submissions", value: "1.4M+" },
-                    { label: "Daily Contests", value: "24/7" },
-                    { label: "Uptime", value: "99.9%" },
-                ].map((stat) => (
-                    <div key={stat.label} className="text-center">
-                        <div className="font-display text-2xl font-bold text-foreground sm:text-3xl">{stat.value}</div>
-                        <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{stat.label}</div>
-                    </div>
-                ))}
-            </div>
-        </section>
-
-        {/* BENTO GRID FEATURE SECTION */}
-        <section className="container mx-auto mt-32 max-w-7xl px-4">
-            <div className="mb-16 text-center">
-                <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">Engineered for Excellence</h2>
-                <p className="mt-4 text-muted-foreground">Everything you need to master algorithms, built into one cohesive system.</p>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:grid-rows-2 lg:gap-8">
-                {/* Feature 1: Large Left */}
-                <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-card p-8 md:col-span-2 md:row-span-2">
-                    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-                    <div className="relative z-10 flex h-full flex-col justify-between space-y-8">
-                        <div>
-                             <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-500">
-                                <Code2 className="h-6 w-6" />
-                             </div>
-                             <h3 className="text-2xl font-bold">Real-time Code Execution</h3>
-                             <p className="mt-2 max-w-md text-muted-foreground">
-                                Run your code against hundreds of test cases in milliseconds. 
-                                Support for C++, Java, Python, and JavaScript with instant feedback.
-                             </p>
-                        </div>
-                        {/* Fake Code Editor UI */}
-                        <div className="w-full overflow-hidden rounded-lg border border-white/10 bg-[#0f0f12] p-4 font-mono text-sm text-gray-300 shadow-2xl">
-                             <div className="flex gap-1.5 pb-4">
-                                <div className="h-3 w-3 rounded-full bg-red-500/20"></div>
-                                <div className="h-3 w-3 rounded-full bg-yellow-500/20"></div>
-                                <div className="h-3 w-3 rounded-full bg-green-500/20"></div>
-                             </div>
-                             <div className="space-y-1 opacity-70">
-                                <p><span className="text-purple-400">def</span> <span className="text-blue-400">solve</span>(arr):</p>
-                                <p className="pl-4">n = <span className="text-yellow-300">len</span>(arr)</p>
-                                <p className="pl-4"><span className="text-purple-400">return</span> [x*2 <span className="text-purple-400">for</span> x <span className="text-purple-400">in</span> arr]</p>
-                             </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Feature 2: Top Right */}
-                <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-card p-8 md:col-span-1 md:row-span-1">
-                     <div className="absolute top-0 right-0 -m-8 h-40 w-40 rounded-full bg-green-500/10 blur-3xl transition-all group-hover:bg-green-500/20"></div>
-                     <Globe2 className="mb-4 h-8 w-8 text-green-500/80" />
-                     <h3 className="text-xl font-bold">Global Leaderboards</h3>
-                     <p className="mt-2 text-sm text-muted-foreground">Compete accurately with Elo-based ranking systems.</p>
-                </div>
-
-                {/* Feature 3: Bottom Right */}
-                <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-card p-8 md:col-span-1 md:row-span-1">
-                     <div className="absolute bottom-0 left-0 -m-8 h-40 w-40 rounded-full bg-orange-500/10 blur-3xl transition-all group-hover:bg-orange-500/20"></div>
-                     <Zap className="mb-4 h-8 w-8 text-orange-500/80" />
-                     <h3 className="text-xl font-bold">Lightning Fast</h3>
-                     <p className="mt-2 text-sm text-muted-foreground">Optimized for speed. No lag, no downtime.</p>
-                </div>
-            </div>
-        </section>
-
-        {/* CTA SECTION */}
-        <section className="mt-32 border-t border-white/5 bg-white/5 py-24 dark:bg-black/20">
-            <div className="container mx-auto max-w-4xl px-4 text-center">
-                <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Ready to climb the ranks?</h2>
-                <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
-                    Join thousands of developers solving problems daily. 
-                    From easy warmups to hard algorithmic challenges.
-                </p>
-                <Button size="lg" className="mt-10 h-14 rounded-full px-8 text-lg font-semibold" onClick={() => navigate("/signup")}>
-                    Start for free <ChevronRight className="ml-1 h-5 w-5" />
-                </Button>
-            </div>
-        </section>
-
-      </main>
-      
-      {/* Footer */}
-      <footer className="border-t border-white/5 py-12 text-center text-sm text-muted-foreground">
-          <p>© 2026 Contestia Inc. Crafted for Engineers.</p>
-      </footer>
-    </div>
-  )
+function Target(props: any) {
+    return (
+        <svg
+            {...props}
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        >
+            <circle cx="12" cy="12" r="10" />
+            <circle cx="12" cy="12" r="6" />
+            <circle cx="12" cy="12" r="2" />
+        </svg>
+    )
 }

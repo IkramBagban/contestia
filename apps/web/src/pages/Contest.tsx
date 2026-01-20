@@ -1,12 +1,15 @@
 import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
 import { useParams, useNavigate } from "react-router-dom"
-import { Trophy, Clock, ArrowRight, Calendar, Info, Play } from "lucide-react"
+import { Trophy, Clock, ArrowRight, Calendar, Info, Play, Zap } from "lucide-react"
 import { RealtimeLeaderboard } from "@/components/domain/leaderboard/realtime-leaderboard"
 import { useContestForAttempt, useStartContest } from "@/hooks/use-queries"
 import { toast } from "sonner"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Loader2 } from "lucide-react"
+import { VantaLoader } from "@/components/ui/vanta-loader"
+import { format } from "date-fns"
+import ReactMarkdown from "react-markdown"
+import rehypeRaw from "rehype-raw"
+import remarkGfm from "remark-gfm"
 
 export function ContestPage() {
     const { id } = useParams<{ id: string }>()
@@ -14,7 +17,7 @@ export function ContestPage() {
 
     // Ideally use a lighter query, but this works for now
     const { data: contestData, isLoading, error } = useContestForAttempt(id || "")
-    const { mutate: startContest } = useStartContest();
+    const { mutate: startContest, isPending: isStarting } = useStartContest();
 
     const handleEnterContest = () => {
         if (!id) return;
@@ -42,11 +45,8 @@ export function ContestPage() {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="h-10 w-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-                    <p className="text-muted-foreground animate-pulse font-mono">Loading Contest Data...</p>
-                </div>
+            <div className="min-h-screen flex items-center justify-center bg-background">
+                <VantaLoader text="LOADING ARENA DATA..." />
             </div>
         )
     }
@@ -106,132 +106,205 @@ export function ContestPage() {
 
 
     return (
-        <div className="min-h-screen bg-background text-foreground font-sans relative overflow-hidden">
-            {/* Background Gradients */}
-            <div className="absolute top-0 left-0 w-full h-[500px] bg-primary/5 blur-3xl pointer-events-none" />
-            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-accent/5 blur-3xl pointer-events-none" />
-
-            <main className="container mx-auto px-4 py-8 md:py-12 relative z-10">
-                {/* Header Section */}
-                <div className="flex flex-col md:flex-row justify-between items-start gap-6 mb-12">
-                    <div className="space-y-4 max-w-2xl">
-                        <div className="flex items-center gap-3">
-                            <Button variant="ghost" className="pl-0 hover:pl-2 transition-all -ml-2 text-muted-foreground" onClick={() => navigate('/dashboard')}>
-                                ← Back to Dashboard
-                            </Button>
-                            <Badge variant="outline" className={cn(
-                                "font-mono uppercase tracking-wider text-xs",
-                                status === "LIVE" && "border-green-500 text-green-500 animate-pulse",
-                                status === "PAST" && "text-muted-foreground"
-                            )}>
-                                {status === "LIVE" ? "Live Now" : status}
-                            </Badge>
-                        </div>
-
-                        <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-transparent bg-clip-text bg-linear-to-r from-foreground to-foreground/70">
-                            {contestData.title}
-                        </h1>
-                        <div
-                            className="text-lg text-muted-foreground leading-relaxed prose prose-invert max-w-none"
-                            dangerouslySetInnerHTML={{ __html: contestData.description }}
-                        />
-
-                        <div className="flex flex-wrap gap-6 pt-2 text-sm text-foreground/80 font-medium">
-                            <div className="flex items-center gap-2 bg-card/50 px-3 py-1.5 rounded-full border border-border/50">
-                                <Calendar className="w-4 h-4 text-primary" />
-                                <span>{realStart.toLocaleDateString()}</span>
-                            </div>
-                            <div className="flex items-center gap-2 bg-card/50 px-3 py-1.5 rounded-full border border-border/50">
-                                <Clock className="w-4 h-4 text-primary" />
-                                <span>{contestData.startTime} - {contestData.endTime}</span>
-                            </div>
-                            <div className="flex items-center gap-2 bg-card/50 px-3 py-1.5 rounded-full border border-border/50">
-                                <Trophy className="w-4 h-4 text-primary" />
-                                <span>{contestData.questions.length} Questions</span>
-                            </div>
-                        </div>
+        <div className="min-h-screen bg-background text-foreground transition-all duration-300 selection:bg-primary selection:text-white">
+            {/* Top Navigation */}
+            <header className="sticky top-0 z-30 border-b border-foreground/10 bg-background/95 backdrop-blur-md">
+                <div className="container mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
+                    <div className="flex items-center gap-4">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => navigate('/dashboard')}
+                            className="gap-2 rounded-lg border-2 border-foreground bg-secondary px-4 font-bold uppercase tracking-tight shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all"
+                        >
+                            <ArrowRight className="h-4 w-4 rotate-180" strokeWidth={3} />
+                            Back to Dash
+                        </Button>
                     </div>
 
-                    <div className="flex-shrink-0">
-                        {contestData.submission?.status === "COMPLETED" ? (
-                            <Button
-                                size="lg"
-                                onClick={() => navigate(`/contest/${id}/result`)}
-                                className="h-14 px-8 rounded-full text-base font-bold shadow-xl shadow-primary/20 hover:shadow-primary/40 transition-all hover:-translate-y-1 bg-green-600 hover:bg-green-700 text-white"
-                            >
-                                View Result <ArrowRight className="ml-2 w-4 h-4" />
-                            </Button>
-                        ) : (
-                            <Button
-                                size="lg"
-                                onClick={handleEnterContest}
-                                className="h-14 px-8 rounded-full text-base font-bold shadow-xl shadow-primary/20 hover:shadow-primary/40 transition-all hover:-translate-y-1"
-                            >
-                                {contestData.submission ? "Continue Attempt" : "Enter Arena"} <Play className="ml-2 w-4 h-4 fill-current" />
-                            </Button>
-                        )}
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2 rounded-lg border-2 border-foreground bg-yellow-400 px-3 py-1 text-[10px] font-bold uppercase tracking-widest shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                            <Trophy className="h-4 w-4 fill-current" />
+                            REWARDS ACTIVE
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <main className="container mx-auto max-w-7xl px-4 py-12 sm:px-6">
+
+                {/* Hero Card */}
+                <div className="relative mb-16 overflow-hidden rounded-[1.5rem] border-2 border-foreground bg-card p-8 md:p-12 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.05)]">
+                    <div className="flex flex-col lg:flex-row justify-between items-start gap-12 relative z-10">
+                        <div className="space-y-6 max-w-3xl">
+                            <div className="flex flex-wrap items-center gap-3">
+                                <ContestStatusBadge status={status.toLowerCase() as any} />
+                                <div className="flex items-center gap-1.5 rounded-lg border border-foreground bg-background px-3 py-1 text-[11px] font-bold uppercase tracking-tighter shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                                    <Zap className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                                    {contestData.questions.reduce((acc: number, q: any) => acc + (q.question.points || 0), 0)} TOTAL PTS
+                                </div>
+                            </div>
+
+                            <h1 className="font-display text-4xl md:text-6xl font-black leading-tight tracking-tight uppercase">
+                                {contestData.title}
+                            </h1>
+
+                            <div className="prose prose-sm dark:prose-invert max-w-none text-foreground/80 leading-relaxed [&_p]:mb-4 last:[&_p]:mb-0">
+                                <ReactMarkdown
+                                    rehypePlugins={[rehypeRaw]}
+                                    remarkPlugins={[remarkGfm]}
+                                >
+                                    {contestData.description || ""}
+                                </ReactMarkdown>
+                            </div>
+
+                            <div className="flex flex-wrap gap-3 pt-2">
+                                <div className="flex items-center gap-3 rounded-xl border border-foreground/20 bg-muted/30 px-4 py-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                                    <Calendar className="w-4 h-4 text-primary" />
+                                    <span className="text-xs font-bold uppercase tracking-tight">{realStart.toLocaleDateString()}</span>
+                                </div>
+                                <div className="flex items-center gap-3 rounded-xl border border-foreground/20 bg-muted/30 px-4 py-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                                    <Clock className="w-4 h-4 text-primary" />
+                                    <span className="text-xs font-bold uppercase tracking-tight">
+                                        {format(realStart, "HH:mm")} - {contestData.endTime && contestData.endTime.includes('T') ? format(new Date(contestData.endTime), "HH:mm") : contestData.endTime}
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-3 rounded-xl border border-foreground/20 bg-muted/30 px-4 py-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                                    <Info className="w-4 h-4 text-primary" />
+                                    <span className="text-xs font-bold uppercase tracking-tight">{contestData.questions.length} SECTORS</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="w-full lg:w-auto flex flex-col items-center gap-4 self-center lg:self-start">
+                            {contestData.submission?.status === "COMPLETED" ? (
+                                <Button
+                                    size="lg"
+                                    onClick={() => navigate(`/contest/${id}/result`)}
+                                    className="h-16 w-full lg:w-64 rounded-2xl border-2 border-foreground bg-green-500 px-8 text-lg font-bold uppercase tracking-tight text-foreground shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none"
+                                >
+                                    RESULTS <ArrowRight className="ml-2 w-5 h-5" />
+                                </Button>
+                            ) : (
+                                <Button
+                                    size="lg"
+                                    onClick={handleEnterContest}
+                                    disabled={isStarting}
+                                    className="h-20 w-full lg:w-72 rounded-2xl border-2 border-foreground bg-primary px-10 text-xl font-bold uppercase tracking-tight text-primary-foreground shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none"
+                                >
+                                    {isStarting ? (
+                                        <div className="flex items-center gap-2">
+                                            <Loader2 className="h-5 w-5 animate-spin" />
+                                            STARTING
+                                        </div>
+                                    ) : (
+                                        <>
+                                            {contestData.submission ? "RESUME" : "DEPLOY"} <Play className="ml-2 w-6 h-6 fill-current" />
+                                        </>
+                                    )}
+                                </Button>
+                            )}
+                            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground animate-pulse mt-1">
+                                SECURE LINK ESTABLISHED
+                            </p>
+                        </div>
                     </div>
                 </div>
 
                 {/* Content Grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Left Column: Details & Instructions */}
-                    <div className="lg:col-span-2 space-y-8">
-                        <Card className="bg-card/40 backdrop-blur-sm border-border/50">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Info className="w-5 h-5 text-primary" />
-                                    Instructions
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4 text-muted-foreground leading-relaxed">
-                                <p>
-                                    1. Ensure you have a stable internet connection before starting the contest.
-                                </p>
-                                <p>
-                                    2. Access to the contest arena is allowed only during the specified time window.
-                                </p>
-                                <p>
-                                    3. Do not refresh the page frequently during the attempt. Your progress is auto-saved.
-                                </p>
-                                <p>
-                                    4. Any attempt to use unfair means will result in immediate disqualification.
-                                </p>
-                                <p>
-                                    5. Scoring is based on correctness and time of submission.
-                                </p>
-                            </CardContent>
-                        </Card>
-
-                        <Card className="bg-card/40 backdrop-blur-sm border-border/50">
-                            <CardHeader>
-                                <CardTitle>Prizes & Rewards</CardTitle>
-                                <CardDescription>Top performers will be recognized on the global leaderboard.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                    <div className="p-4 rounded-xl bg-orange-500/10 border border-orange-500/20 flex flex-col items-center text-center gap-2">
-                                        <Trophy className="w-8 h-8 text-orange-500" />
-                                        <span className="font-bold text-orange-700 dark:text-orange-300">Top 3</span>
-                                        <span className="text-xs text-muted-foreground">Profile Badge</span>
-                                    </div>
-                                    <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 flex flex-col items-center text-center gap-2">
-                                        <Clock className="w-8 h-8 text-blue-500" />
-                                        <span className="font-bold text-blue-700 dark:text-blue-300">Fastest Solver</span>
-                                        <span className="text-xs text-muted-foreground">Speed Bonus</span>
-                                    </div>
-                                    {/* Add more if needed */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+                    <div className="lg:col-span-2 space-y-12">
+                        <section>
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="h-9 w-9 rounded-lg border-2 border-foreground bg-secondary flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                                    <Info className="w-5 h-5 text-foreground" />
                                 </div>
-                            </CardContent>
-                        </Card>
+                                <h2 className="font-display text-2xl font-black tracking-tight uppercase">Mission Briefing</h2>
+                            </div>
+
+                            <div className="grid gap-4">
+                                {[
+                                    "Ensure stable uplink before session initiation.",
+                                    "Entry window limited to temporal coordinates.",
+                                    "Neural progress synced to central core automatically.",
+                                    "Unauthorized tools will trigger terminal exclusion."
+                                ].map((step, i) => (
+                                    <div key={i} className="flex items-center gap-5 rounded-xl border border-foreground/10 bg-card p-5 shadow-sm group hover:border-foreground transition-all">
+                                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-foreground bg-background font-display text-lg font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                                            {i + 1}
+                                        </div>
+                                        <p className="text-base font-bold uppercase tracking-tight text-foreground/80">
+                                            {step}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+
+                        <section>
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="h-9 w-9 rounded-lg border-2 border-foreground bg-yellow-400 flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                                    <Trophy className="w-5 h-5 text-foreground fill-current" />
+                                </div>
+                                <h2 className="font-display text-2xl font-black tracking-tight uppercase">Reward Tiers</h2>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                <div className="rounded-xl border border-foreground/10 bg-orange-400/5 p-8 flex flex-col items-center text-center gap-4 transition-all hover:border-foreground shadow-sm">
+                                    <div className="h-14 w-14 rounded-xl border border-foreground bg-orange-400 flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                                        <Trophy className="w-7 h-7 text-foreground fill-current" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-bold uppercase tracking-tight">ELITE COMMAND</h3>
+                                        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mt-1">TOP 3 RANK HOLDERS</p>
+                                    </div>
+                                </div>
+                                <div className="rounded-xl border border-foreground/10 bg-blue-400/5 p-8 flex flex-col items-center text-center gap-4 transition-all hover:border-foreground shadow-sm">
+                                    <div className="h-14 w-14 rounded-xl border border-foreground bg-blue-400 flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                                        <Clock className="w-7 h-7 text-foreground" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-bold uppercase tracking-tight">SONIC PULSE</h3>
+                                        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mt-1">FASTEST COMPLETION</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
                     </div>
 
-                    {/* Right Column: Leaderboard */}
-                    <div>
-                        <RealtimeLeaderboard contestId={id || ""} contestStatus={status} />
+                    <div className="space-y-8">
+                        <div className="sticky top-24">
+                            <RealtimeLeaderboard contestId={id || ""} contestStatus={status} />
+                        </div>
                     </div>
                 </div>
             </main>
         </div>
+    );
+}
+
+function ContestStatusBadge({ status }: { status: "live" | "upcoming" | "past" }) {
+    if (status === "live") {
+        return (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-red-400/10 px-3 py-1 text-[11px] font-bold text-red-500 border border-red-400/20">
+                <span className="relative flex h-1.5 w-1.5">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75"></span>
+                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-red-500"></span>
+                </span>
+                LIVE NOW
+            </span>
+        )
+    }
+    if (status === "upcoming") {
+        return (
+            <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-[11px] font-bold text-primary border border-primary/20">
+                UPCOMING
+            </span>
+        )
+    }
+    return (
+        <span className="inline-flex items-center rounded-full bg-muted px-3 py-1 text-[11px] font-bold text-muted-foreground border border-border">
+            ENDED
+        </span>
     )
 }

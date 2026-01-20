@@ -1,89 +1,118 @@
 import { Button } from "@/components/ui/button"
-import { useNavigate } from "react-router-dom"
-import { ArrowLeft, ChevronRight, Crown, Medal } from "lucide-react"
-
-const LEADERBOARD_DATA = [
-  { rank: 1, name: "hsk", points: 100 },
-  { rank: 2, name: "raman", points: 99 },
-  { rank: 3, name: "kirat.", points: 99 },
-  { rank: 4, name: "harmanpreet", points: 98 },
-]
+import { useNavigate, useParams } from "react-router-dom"
+import { ArrowLeft, Crown, Medal, Trophy, Wifi, WifiOff } from "lucide-react"
+import { useLeaderboard } from "@/hooks/use-leaderboard"
+import { useContestForAttempt } from "@/hooks/use-queries"
+import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
 
 export function LeaderboardPage() {
-  const navigate = useNavigate()
+    const navigate = useNavigate()
+    const { id } = useParams<{ id: string }>()
+    const { leaderboard, isConnected } = useLeaderboard(id || "", true)
+    const { data: contestData } = useContestForAttempt(id || "")
 
-  return (
-    <div className="min-h-screen bg-background text-foreground font-sans p-4 md:p-8 flex items-center justify-center selection:bg-accent/20">
-      <div className="w-full max-w-4xl border border-border bg-card/40 backdrop-blur-xl rounded-3xl p-8 md:p-12 min-h-[80vh] relative">
-        
-        {/* Decorative Grid */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] rounded-3xl pointer-events-none" />
+    const getRankIcon = (index: number) => {
+        switch (index) {
+            case 0: return <Trophy className="h-6 w-6 text-yellow-500" strokeWidth={3} />;
+            case 1: return <Medal className="h-6 w-6 text-slate-400" strokeWidth={3} />;
+            case 2: return <Medal className="h-6 w-6 text-amber-700" strokeWidth={3} />;
+            default: return <span className="font-mono font-black text-muted-foreground/40 text-sm">#{index + 1}</span>;
+        }
+    };
 
-        <Button 
-            variant="ghost" 
-            className="absolute top-6 left-6 text-muted-foreground hover:text-foreground z-10"
-            onClick={() => navigate('/')}
-        >
-            <ArrowLeft className="w-4 h-4 mr-2" /> Back
-        </Button>
+    return (
+        <div className="min-h-screen bg-background text-foreground transition-all duration-300 selection:bg-primary selection:text-white relative overflow-hidden">
+            {/* Background decoration */}
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:32px_32px]"></div>
 
-        <div className="relative text-center mb-16 mt-8 space-y-2">
-            <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-linear-to-b from-foreground to-foreground/70 dark:from-white dark:to-white/70">
-                Leaderboard
-            </h1>
-        </div>
+            <header className="sticky top-0 z-30 border-b border-foreground/10 bg-background/95 backdrop-blur-md">
+                <div className="container mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
+                    <Button
+                        variant="ghost"
+                        className="text-muted-foreground hover:text-foreground transition-all rounded-full border border-transparent hover:border-foreground/10 h-10 px-4"
+                        onClick={() => navigate(-1)}
+                    >
+                        <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                    </Button>
 
-        <div className="grid grid-cols-12 gap-4 px-6 mb-4 text-xs font-medium text-muted-foreground uppercase tracking-wider relative">
-            <div className="col-span-2 text-center">rank</div>
-            <div className="col-span-8 text-center">name</div>
-            <div className="col-span-2 text-center">points</div>
-        </div>
+                    <div className="flex items-center gap-3">
+                        <Badge variant={isConnected ? "default" : "destructive"} className="text-[10px] font-bold h-6 gap-1.5 px-3 rounded-full border border-foreground shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
+                            {isConnected ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
+                            {isConnected ? "LIVE" : "OFFLINE"}
+                        </Badge>
+                    </div>
+                </div>
+            </header>
 
-        <div className="space-y-3 relative">
-            {LEADERBOARD_DATA.map((entry) => (
-                <div 
-                    key={entry.rank}
-                    className="group grid grid-cols-12 gap-4 items-center p-4 rounded-xl border border-border/30 bg-background/30 hover:bg-muted/30 hover:border-primary/30 transition-all duration-300 font-mono text-lg"
-                >
-                    <div className="col-span-2 flex justify-center">
-                        {entry.rank === 1 ? (
-                            <Crown className="h-6 w-6 text-yellow-500 fill-yellow-500/20" />
-                        ) : entry.rank === 2 ? (
-                            <Medal className="h-6 w-6 text-slate-300" />
-                        ) : entry.rank === 3 ? (
-                            <Medal className="h-6 w-6 text-amber-700" />
+            <main className="container mx-auto max-w-5xl px-4 py-12 sm:px-6 relative z-10">
+
+                <div className="text-center space-y-4 mb-16">
+                    <Badge className="bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 px-4 py-1 text-[10px] font-black uppercase tracking-[0.2em] rounded-full">
+                        Global Standing
+                    </Badge>
+                    <h1 className="font-display text-5xl md:text-6xl font-black italic tracking-tighter uppercase leading-none">
+                        Real-time <span className="text-primary">Leaderboard</span>
+                    </h1>
+                    <p className="text-muted-foreground font-bold italic tracking-tight uppercase text-sm">
+                        {contestData?.title || "Arena Mission"} Status
+                    </p>
+                </div>
+
+                <div className="rounded-[2.5rem] border-2 border-foreground bg-card shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,0.05)] overflow-hidden">
+                    <div className="grid grid-cols-12 gap-4 px-8 py-6 bg-muted/30 border-b-2 border-foreground text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em]">
+                        <div className="col-span-2 text-center">Rank</div>
+                        <div className="col-span-8">User Operative</div>
+                        <div className="col-span-2 text-right">Points</div>
+                    </div>
+
+                    <div className="divide-y-2 divide-foreground/5">
+                        {leaderboard.length === 0 ? (
+                            <div className="py-20 text-center space-y-4">
+                                <Crown className="h-12 w-12 text-muted-foreground/20 mx-auto" />
+                                <p className="font-bold text-muted-foreground uppercase tracking-widest text-xs">Waiting for data sync...</p>
+                            </div>
                         ) : (
-                            <span className="text-muted-foreground">#{entry.rank}</span>
+                            leaderboard.map((entry, index) => (
+                                <div
+                                    key={entry.userId}
+                                    className={cn(
+                                        "grid grid-cols-12 gap-4 items-center px-8 py-6 transition-colors hover:bg-muted/50",
+                                        index < 3 && "bg-primary/[0.02]"
+                                    )}
+                                >
+                                    <div className="col-span-2 flex justify-center">
+                                        {getRankIcon(index)}
+                                    </div>
+                                    <div className="col-span-8 flex items-center gap-4">
+                                        <div className="h-10 w-10 rounded-xl border-2 border-foreground bg-secondary flex items-center justify-center font-black text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                                            {entry.userId?.slice(0, 2).toUpperCase()}
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="text-lg font-black tracking-tight uppercase group-hover:text-primary transition-colors">
+                                                {entry.userId}
+                                            </span>
+                                            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Verified Operative</span>
+                                        </div>
+                                    </div>
+                                    <div className="col-span-2 text-right">
+                                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg border-2 border-foreground bg-background font-mono font-black text-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                                            {entry.score}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
                         )}
                     </div>
-                    <div className="col-span-8 text-center font-medium group-hover:text-primary transition-colors">
-                        {entry.name}
-                    </div>
-                    <div className="col-span-2 text-center text-accent">
-                        {entry.points}
-                    </div>
                 </div>
-            ))}
-        </div>
 
-        <div className="mt-12 flex justify-end px-4 relative">
-             <div className="inline-flex items-center gap-1 border border-border bg-background/80 backdrop-blur rounded-full px-2 py-1.5 shadow-sm">
-                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" disabled>
-                    <span className="sr-only">Previous</span>
-                    <ArrowLeft className="h-4 w-4" />
-                </Button>
-                <div className="flex items-center gap-1 px-2 font-mono text-sm">
-                    <span className="bg-primary text-primary-foreground h-6 w-6 flex items-center justify-center rounded-md">1</span>
-                    <span className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-muted cursor-pointer text-muted-foreground">2</span>
-                    <span className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-muted cursor-pointer text-muted-foreground">3</span>
+                {/* Footer Quote */}
+                <div className="mt-16 text-center opacity-40">
+                    <p className="text-[10px] font-black uppercase tracking-[0.5em] text-muted-foreground">
+                        Dominate the System. Calibrate Success.
+                    </p>
                 </div>
-                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
-                    <span className="sr-only">Next</span>
-                    <ChevronRight className="h-4 w-4" />
-                </Button>
-             </div>
+            </main>
         </div>
-      </div>
-    </div>
-  )
+    )
 }

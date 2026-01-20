@@ -17,7 +17,8 @@ import {
   Check,
   X,
   Play,
-  Trophy
+  Trophy,
+  Loader2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -26,6 +27,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { RealtimeLeaderboard } from "@/components/domain/leaderboard/realtime-leaderboard";
+import { VantaLoader } from "@/components/ui/vanta-loader";
 
 export function ContestAttemptPage() {
   const { id } = useParams<{ id: string }>();
@@ -337,8 +339,8 @@ export function ContestAttemptPage() {
     return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
 
-  if (isLoading) return <div className="flex h-screen items-center justify-center bg-background"><span className="animate-pulse text-xl font-display font-medium text-foreground">Loading Arena...</span></div>;
-  if (error || !contestData) return <div className="flex h-screen items-center justify-center text-destructive bg-background">Error loading contest.</div>;
+  if (isLoading) return <div className="flex h-screen items-center justify-center bg-background"><VantaLoader text="PREPARING MISSION..." /></div>;
+  if (error || !contestData) return <div className="flex h-screen items-center justify-center text-destructive bg-background font-black italic tracking-tighter uppercase p-10 border-4 border-destructive m-10">ERROR: MISSION DATA CORRUPTED</div>;
 
   const currentQuestion = contestData.questions?.[currentQuestionIndex]?.question;
   const totalQuestions = contestData.questions?.length;
@@ -384,22 +386,22 @@ export function ContestAttemptPage() {
   const contestStatus = getContestStatus(contestData);
 
   return (
-    <div className="flex min-h-screen flex-col bg-background font-sans text-foreground transition-colors duration-300">
+    <div className="flex min-h-screen flex-col bg-background font-sans text-foreground transition-colors duration-300 selection:bg-primary selection:text-white">
 
-      {/* 1. Sketch-Style Header Section */}
-      <header className="sticky top-0 z-20 w-full border-b-2 border-foreground bg-background px-4 py-3 sm:px-6">
+      {/* 1. Soft Neo-Brutalism Header Section */}
+      <header className="sticky top-0 z-20 w-full border-b border-foreground/10 bg-background/95 backdrop-blur-md px-4 py-3 sm:px-6">
         <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-4">
 
-          {/* Left: Title & Rank */}
+          {/* Left: Title */}
           <div className="flex items-center gap-4 sm:gap-6">
-            <h1 className="hidden font-display text-lg font-bold text-foreground sm:block">{contestData.title}</h1>
+            <h1 className="hidden font-display text-lg font-bold text-foreground sm:block tracking-tight">{contestData.title}</h1>
           </div>
 
           {/* Center: Timer */}
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-            <div className="flex items-center rounded-lg border-2 border-foreground bg-card px-4 py-1.5 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] dark:shadow-[3px_3px_0px_0px_rgba(255,255,255,1)]">
+            <div className="flex items-center rounded-lg border border-foreground bg-card px-4 py-1.5 shadow-sm">
               <span className={cn(
-                "font-mono text-2xl font-bold tracking-widest",
+                "font-mono text-xl font-bold tracking-widest",
                 timeLeft && timeLeft < 300000 ? 'text-destructive animate-pulse' : 'text-foreground'
               )}>
                 {timeLeft !== null ? formatTime(timeLeft) : "--:--:--"}
@@ -411,14 +413,14 @@ export function ContestAttemptPage() {
           <div className="flex items-center gap-4">
             <Sheet>
               <SheetTrigger asChild>
-                <div className="hidden items-center gap-2 sm:flex cursor-pointer hover:scale-105 active:scale-95 transition-transform rounded-md p-1 hover:bg-muted/50" title="Click to view Leaderboard">
-                  <span className="font-display text-sm font-bold text-muted-foreground">Score:</span>
+                <div className="hidden items-center gap-2 sm:flex cursor-pointer hover:bg-muted/50 transition-colors rounded-md px-3 py-1" title="Click to view Leaderboard">
+                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Score</span>
                   <span className="font-mono text-lg font-bold text-primary">{contestData.submission?.score ?? 0}</span>
                 </div>
               </SheetTrigger>
               <SheetContent side="right" className="w-full sm:w-[600px] sm:max-w-xl p-0">
                 <div className="h-full flex flex-col pt-10 px-6">
-                  <h2 className="text-2xl font-display font-bold mb-6 flex items-center gap-2">
+                  <h2 className="text-2xl font-display font-bold mb-6 flex items-center gap-2 tracking-tight">
                     <Trophy className="h-6 w-6 text-yellow-500" />
                     Live Leaderboard
                   </h2>
@@ -431,9 +433,9 @@ export function ContestAttemptPage() {
 
             <Button
               onClick={handleSubmit}
-              className="h-10 rounded-lg border-2 border-foreground bg-background px-4 font-bold text-foreground transition-all hover:translate-y-[2px] hover:shadow-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:shadow-[2px_2px_0px_0px_rgba(255,255,255,1)] hover:bg-accent"
+              className="h-10 rounded-lg border border-foreground bg-primary px-4 font-bold text-primary-foreground transition-all hover:bg-primary/90 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.1)] active:translate-y-[1px] active:shadow-none"
             >
-              Submit Contest
+              Finish Mission
             </Button>
           </div>
         </div>
@@ -441,9 +443,9 @@ export function ContestAttemptPage() {
 
       {/* Mobile Info Bar */}
       <div className="flex items-center justify-between border-b border-border bg-muted/20 px-4 py-2 sm:hidden">
-        <span className="truncate text-xs font-bold">{contestData.title}</span>
+        <span className="truncate text-xs font-bold tracking-tight">{contestData.title}</span>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">Score:</span>
+          <span className="text-xs text-muted-foreground uppercase font-bold">Score</span>
           <span className="font-mono text-sm font-bold text-primary">{contestData.submission?.score ?? 0}</span>
         </div>
       </div>
@@ -452,27 +454,27 @@ export function ContestAttemptPage() {
 
         {/* 2. Left Panel: Question Area */}
         <div className="flex flex-col gap-6 lg:col-span-9">
-          <div className="flex flex-1 flex-col justify-between rounded-xl border-2 border-foreground bg-card p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] sm:p-10">
+          <div className="flex flex-1 flex-col justify-between rounded-2xl border border-foreground bg-card p-6 shadow-sm sm:p-10">
 
             <div className="mb-8">
-              <div className="mb-6 flex items-center justify-between border-b-2 border-dashed border-border pb-4">
-                <span className="font-display text-xl font-bold text-foreground">
+              <div className="mb-6 flex items-center justify-between border-b border-foreground/10 pb-4">
+                <span className="font-display text-xl font-bold text-foreground tracking-tight">
                   Problem {currentQuestionIndex + 1}
                 </span>
                 <div className="flex gap-3">
                   {isDSA && (
-                    <div className="rounded-md bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-3 py-1 text-xs font-bold uppercase tracking-wider">
+                    <div className="rounded-md bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-3 py-1 text-[10px] font-bold uppercase tracking-widest border border-blue-200 dark:border-blue-800">
                       CODING
                     </div>
                   )}
-                  <div className="rounded-md bg-muted px-3 py-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  <div className="rounded-md bg-muted px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground border border-border">
                     {currentQuestion?.points || 10} Points
                   </div>
                 </div>
               </div>
 
               <div className="mb-8 overflow-hidden">
-                <div className="prose prose-sm dark:prose-invert max-w-none font-sans text-foreground/90 sm:prose-base md:prose-lg leading-relaxed [&_pre]:bg-muted [&_pre]:p-4 [&_pre]:rounded-lg [&_pre]:border [&_pre]:border-border [&_code]:bg-muted [&_code]:rounded [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-primary [&_h3]:text-xl [&_h3]:font-bold [&_h4]:text-lg [&_h4]:font-semibold [&_strong]:font-bold">
+                <div className="prose prose-sm dark:prose-invert max-w-none font-sans text-foreground/90 sm:prose-base leading-relaxed [&_pre]:bg-muted/50 [&_pre]:p-4 [&_pre]:rounded-xl [&_pre]:border [&_pre]:border-border [&_code]:bg-muted [&_code]:rounded-md [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-primary [&_h3]:text-xl [&_h3]:font-bold [&_h3]:tracking-tight [&_h4]:text-lg [&_h4]:font-semibold [&_strong]:font-bold">
                   <ReactMarkdown
                     rehypePlugins={[rehypeRaw]}
                     remarkPlugins={[remarkGfm]}
@@ -488,11 +490,11 @@ export function ContestAttemptPage() {
               <div className="space-y-4">
                 {/* Language Selector */}
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-muted-foreground">Language:</label>
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Language Selection</label>
                   <select
                     value={selectedLanguage}
                     onChange={(e) => setSelectedLanguage(Number(e.target.value))}
-                    className="h-9 rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="h-9 rounded-md border border-foreground/20 bg-background px-3 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
                   >
                     <option value={63}>JavaScript (Node.js)</option>
                     <option value={71}>Python (3.8)</option>
@@ -505,7 +507,7 @@ export function ContestAttemptPage() {
                 </div>
 
                 {/* Code Editor */}
-                <div className="h-[350px] overflow-hidden rounded-xl border-2 border-border shadow-sm">
+                <div className="h-[400px] overflow-hidden rounded-xl border border-foreground/20 shadow-sm bg-[#1e1e1e]">
                   <Editor
                     key={`${currentQuestion?.id}-${selectedLanguage}`}
                     height="100%"
@@ -519,44 +521,45 @@ export function ContestAttemptPage() {
                       fontSize: 14,
                       scrollBeyondLastLine: false,
                       automaticLayout: true,
+                      padding: { top: 16, bottom: 16 }
                     }}
                   />
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex justify-end gap-3">
+                <div className="flex justify-end gap-3 pt-2">
                   <Button
                     onClick={handleRunCode}
                     disabled={isRunning || isSubmitting}
                     variant="outline"
-                    className="gap-2 border-green-600 text-green-600 hover:bg-green-600/10 disabled:opacity-50"
+                    className="gap-2 border-green-600 text-green-600 hover:bg-green-600/5 font-bold uppercase tracking-tight text-xs h-10 px-6 rounded-lg transition-all"
                   >
                     {isRunning ? (
                       <>
-                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-green-600 border-t-transparent" />
+                        <Loader2 className="h-4 w-4 animate-spin" />
                         Running...
                       </>
                     ) : (
                       <>
-                        <Play className="h-4 w-4" />
-                        Run Code
+                        <Play className="h-3.5 w-3.5" />
+                        Run Local
                       </>
                     )}
                   </Button>
                   <Button
                     onClick={handleSubmitDSA}
                     disabled={isRunning || isSubmitting}
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold gap-2 disabled:opacity-50"
+                    className="bg-primary hover:bg-primary/95 text-primary-foreground font-bold uppercase tracking-tight text-xs h-10 px-8 rounded-lg gap-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-[1px] active:shadow-none"
                   >
                     {isSubmitting ? (
                       <>
-                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                        <Loader2 className="h-4 w-4 animate-spin" />
                         Submitting...
                       </>
                     ) : (
                       <>
-                        <CheckCircle2 className="h-4 w-4" />
-                        Submit
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        Final Submit
                       </>
                     )}
                   </Button>
@@ -564,54 +567,53 @@ export function ContestAttemptPage() {
 
                 {/* Test Results Panel */}
                 {runResult && (
-                  <div className="rounded-xl border-2 border-border bg-muted/30 p-4 space-y-3">
+                  <div className="rounded-xl border border-foreground bg-muted/50 p-6 space-y-4 mt-6">
                     <div className="flex items-center justify-between">
-                      <h4 className="font-bold text-sm">Test Results</h4>
+                      <h4 className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Verification Report</h4>
                       <span className={cn(
-                        "text-sm font-mono font-bold",
-                        runResult.passed === (runResult.total || 0) ? "text-green-500" : "text-red-500"
+                        "text-sm font-mono font-bold px-3 py-1 rounded-full border",
+                        runResult.passed === (runResult.total || 0)
+                          ? "text-green-600 bg-green-50 border-green-200"
+                          : "text-red-600 bg-red-50 border-red-200"
                       )}>
-                        {runResult.passed}/{runResult.total} Passed
+                        {runResult.passed}/{runResult.total} PASSED
                       </span>
                     </div>
 
                     {runResult.compilationError && (
-                      <div className="rounded-lg bg-red-500/10 border border-red-500/30 p-3">
-                        <p className="text-xs font-bold text-red-500 mb-1">Compilation Error</p>
-                        <pre className="text-xs text-red-400 overflow-x-auto whitespace-pre-wrap">{runResult.compilationError}</pre>
+                      <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-4">
+                        <p className="text-xs font-bold text-destructive uppercase tracking-wider mb-2">Internal Error / Compilation Failed</p>
+                        <pre className="text-xs font-mono text-destructive/80 overflow-x-auto whitespace-pre-wrap leading-relaxed">{runResult.compilationError}</pre>
                       </div>
                     )}
 
-                    <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                    <div className="grid gap-3 max-h-[300px] overflow-y-auto pr-2">
                       {runResult.results?.map((result: any, idx: number) => (
                         <div
                           key={result.testCaseId}
                           className={cn(
-                            "rounded-lg border p-3 text-sm",
+                            "rounded-lg border p-4 text-sm transition-all",
                             result.passed
-                              ? "border-green-500/30 bg-green-500/5"
-                              : "border-red-500/30 bg-red-500/5"
+                              ? "border-green-500/20 bg-green-500/5 hover:bg-green-500/10"
+                              : "border-red-500/20 bg-red-500/5 hover:bg-red-500/10"
                           )}
                         >
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="font-medium">Test Case {idx + 1}</span>
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="font-bold uppercase tracking-tight text-xs">Sector {idx + 1}</span>
                             <span className={cn(
-                              "text-xs font-bold px-2 py-0.5 rounded-full",
-                              result.passed ? "bg-green-500/20 text-green-500" : "bg-red-500/20 text-red-500"
+                              "text-[10px] font-black px-2 py-0.5 rounded border uppercase tracking-widest",
+                              result.passed ? "border-green-500/30 text-green-600 bg-green-50" : "border-red-500/30 text-red-600 bg-red-50"
                             )}>
-                              {result.passed ? "PASSED" : "FAILED"}
+                              {result.passed ? "OK" : "ERR"}
                             </span>
                           </div>
                           {!result.passed && (
-                            <div className="space-y-1 text-xs font-mono">
-                              <div><span className="text-muted-foreground">Input:</span> {typeof result.input === 'object' ? JSON.stringify(result.input) : result.input}</div>
-                              <div><span className="text-muted-foreground">Expected:</span> {typeof result.expectedOutput === 'object' ? JSON.stringify(result.expectedOutput) : result.expectedOutput}</div>
-                              <div><span className="text-muted-foreground">Got:</span> {typeof result.actualOutput === 'object' ? JSON.stringify(result.actualOutput) : (result.actualOutput || "(empty)")}</div>
-                              {result.error && <div className="text-red-400">Error: {result.error}</div>}
+                            <div className="space-y-2 text-xs font-mono bg-background/50 p-3 rounded-md border border-foreground/5 mt-2">
+                              <div><span className="text-muted-foreground uppercase opacity-50 block mb-0.5">Input</span> {typeof result.input === 'object' ? JSON.stringify(result.input) : result.input}</div>
+                              <div><span className="text-muted-foreground uppercase opacity-50 block mb-0.5">Expected</span> {typeof result.expectedOutput === 'object' ? JSON.stringify(result.expectedOutput) : result.expectedOutput}</div>
+                              <div><span className="text-muted-foreground uppercase opacity-50 block mb-0.5">Observed</span> {typeof result.actualOutput === 'object' ? JSON.stringify(result.actualOutput) : (result.actualOutput || "(nil)")}</div>
+                              {result.error && <div className="text-red-500 pt-1">Error: {result.error}</div>}
                             </div>
-                          )}
-                          {result.executionTime && (
-                            <div className="text-xs text-muted-foreground mt-1">Time: {result.executionTime}s</div>
                           )}
                         </div>
                       ))}
@@ -631,32 +633,32 @@ export function ContestAttemptPage() {
                         key={option.id}
                         onClick={() => !isSubmitted && handleOptionSelect(currentQuestion?.id, option.id)}
                         className={cn(
-                          "group relative flex cursor-pointer items-start gap-4 rounded-xl border-2 p-5 transition-all duration-200 ease-in-out",
+                          "group relative flex cursor-pointer items-start gap-4 rounded-xl border border-foreground/10 p-5 transition-all duration-200",
                           isSelected
-                            ? "border-primary bg-primary/5 shadow-[0_0_0_1px_rgba(var(--primary),1)]"
-                            : "border-border bg-card hover:border-primary/50 hover:bg-accent",
+                            ? "border-primary bg-primary/5 shadow-sm"
+                            : "bg-muted/30 hover:border-foreground/20 hover:bg-muted/50",
                           isSubmitted && "cursor-not-allowed opacity-80"
                         )}
                       >
                         <div className={cn(
-                          "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold transition-colors",
-                          isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground group-hover:bg-primary/20 group-hover:text-primary"
+                          "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold transition-all",
+                          isSelected ? "bg-primary text-primary-foreground border border-foreground shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]" : "bg-background text-muted-foreground border border-foreground/10"
                         )}>
                           {optionLabels[idx]}
                         </div>
 
                         <div className="flex-1 pt-1">
                           <span className={cn(
-                            "text-base font-medium leading-relaxed",
-                            isSelected ? "text-foreground" : "text-card-foreground"
+                            "text-sm font-bold leading-relaxed tracking-tight",
+                            isSelected ? "text-foreground" : "text-muted-foreground"
                           )}>
                             {option.text}
                           </span>
                         </div>
 
                         {isSelected && (
-                          <div className="absolute right-5 top-5 text-primary">
-                            <CheckCircle2 className="h-6 w-6 fill-primary/10" />
+                          <div className="absolute right-4 top-4 text-primary opacity-50">
+                            <CheckCircle2 className="h-5 w-5" />
                           </div>
                         )}
                       </div>
@@ -665,15 +667,15 @@ export function ContestAttemptPage() {
                 </div>
 
                 {!contestData.submission?.answers?.[currentQuestion?.id] && (
-                  <div className="flex justify-end">
+                  <div className="flex justify-end pt-4">
                     <Button
                       onClick={handleSubmitMCQ}
                       disabled={!answers[currentQuestion?.id] || saveProgress.isPending}
-                      className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold h-12 px-8 rounded-xl border-2 border-foreground shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] transition-all active:translate-y-[2px] active:shadow-none min-w-[160px]"
+                      className="bg-primary hover:bg-primary/95 text-primary-foreground font-bold h-11 px-10 rounded-xl border border-foreground shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.1)] transition-all active:translate-y-[1px] active:shadow-none min-w-[180px] uppercase text-xs tracking-wider"
                     >
                       {saveProgress.isPending ? (
                         <div className="flex items-center gap-2">
-                          <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                          <Loader2 className="h-4 w-4 animate-spin" />
                           Submitting...
                         </div>
                       ) : (
@@ -685,21 +687,21 @@ export function ContestAttemptPage() {
               </div>
             )}
 
-            <div className="mt-12 border-t-2 border-dashed border-border pt-8" />
+            <div className="mt-12 border-t border-foreground/5 pt-8" />
           </div>
         </div>
 
-        {/* 3. Right Panel: Progress Tracker - Sketch Style */}
+        {/* 3. Right Panel: Progress Tracker */}
         <div className="lg:col-span-3 order-first lg:order-last mb-6 lg:mb-0">
-          <div className="sticky top-24 rounded-xl border-2 border-foreground bg-card p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]">
-            <div className="mb-6 flex items-center justify-between border-b-2 border-border pb-4">
-              <h3 className="font-display font-bold text-foreground">Progress</h3>
-              <span className="font-mono text-sm font-bold text-muted-foreground">
+          <div className="sticky top-24 rounded-2xl border border-foreground bg-card p-6 shadow-sm">
+            <div className="mb-6 flex items-center justify-between border-b border-foreground/10 pb-4">
+              <h3 className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Progression</h3>
+              <span className="font-mono text-sm font-bold text-primary">
                 {Object.keys(answers).length}/{totalQuestions}
               </span>
             </div>
 
-            <div className="grid grid-cols-5 gap-2 sm:grid-cols-8 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-5 gap-2.5 sm:grid-cols-8 lg:grid-cols-2 xl:grid-cols-3">
               {contestData.questions?.map((q: any, idx: number) => {
                 const questionId = q.question.id;
                 const isCurrent = currentQuestionIndex === idx;
@@ -712,22 +714,22 @@ export function ContestAttemptPage() {
                     key={questionId}
                     onClick={() => handleJumpToQuestion(idx)}
                     className={cn(
-                      "flex aspect-square items-center justify-center rounded-lg border-2 text-sm font-bold transition-all hover:scale-105 active:scale-95",
+                      "flex aspect-square items-center justify-center rounded-lg border text-xs font-bold transition-all",
                       // Background logic
                       isCorrect
-                        ? "bg-green-500 text-white border-green-600"
+                        ? "bg-green-500 text-white border-green-600 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
                         : isFailed
-                          ? "bg-red-500 text-white border-red-600"
-                          : "bg-card text-muted-foreground border-border hover:border-primary/50",
+                          ? "bg-red-500 text-white border-red-600 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
+                          : "bg-muted/30 text-muted-foreground border-foreground/5 hover:border-foreground/20",
 
-                      // Current indicator logic (Borders and Shadows)
-                      isCurrent && "ring-4 ring-primary ring-offset-2 -translate-y-1 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]"
+                      // Current indicator logic
+                      isCurrent && "ring-2 ring-primary ring-offset-2 scale-105 border-foreground shadow-sm"
                     )}
                   >
                     {isCorrect ? (
-                      <Check className="h-4 w-4 sm:h-5 sm:w-5" />
+                      <Check className="h-4 w-4" />
                     ) : isFailed ? (
-                      <X className="h-4 w-4 sm:h-5 sm:w-5" />
+                      <X className="h-4 w-4" />
                     ) : (
                       idx + 1
                     )}
@@ -736,24 +738,24 @@ export function ContestAttemptPage() {
               })}
             </div>
 
-            <div className="mt-8 space-y-3 rounded-lg border-2 border-dashed border-border bg-muted/30 p-4">
-              <div className="flex items-center gap-3 text-xs font-bold text-muted-foreground">
-                <div className="h-3 w-3 rounded-sm border-2 border-primary bg-primary"></div>
-                <span>Current Problem</span>
+            <div className="mt-8 space-y-3 rounded-xl border border-foreground/10 bg-muted/20 p-4">
+              <div className="flex items-center gap-3 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                <div className="h-2.5 w-2.5 rounded-sm border border-primary bg-primary"></div>
+                <span>Current</span>
               </div>
-              <div className="flex items-center gap-3 text-xs font-bold text-muted-foreground">
-                <div className="h-3 w-3 rounded-sm border-2 border-green-500 bg-green-500"></div>
-                <span>Correct</span>
+              <div className="flex items-center gap-3 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                <div className="h-2.5 w-2.5 rounded-sm border border-green-500 bg-green-500"></div>
+                <span>Neutralized</span>
               </div>
-              <div className="flex items-center gap-3 text-xs font-bold text-muted-foreground">
-                <div className="h-3 w-3 rounded-sm border-2 border-red-500 bg-red-500"></div>
-                <span>Incorrect</span>
+              <div className="flex items-center gap-3 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                <div className="h-2.5 w-2.5 rounded-sm border border-red-500 bg-red-500"></div>
+                <span>Bypassed</span>
               </div>
             </div>
           </div>
         </div>
 
       </main>
-    </div >
+    </div>
   );
 }
