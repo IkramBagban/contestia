@@ -58,20 +58,20 @@ export function SignupPage() {
           <h1 className="text-3xl font-black tracking-tight text-foreground uppercase">
             Contestia
           </h1>
-          <p className="text-muted-foreground font-medium uppercase tracking-widest text-[10px]">Initialize New Operative Account</p>
+          <p className="text-muted-foreground font-medium uppercase tracking-widest text-[10px]">Create Your Account</p>
         </div>
 
         <Card className="rounded-3xl border border-foreground bg-card shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.05)] overflow-hidden">
           <CardHeader className="space-y-1 pb-6 border-b border-foreground/5">
             <CardTitle className="text-2xl font-black uppercase tracking-tight">Create Account</CardTitle>
             <CardDescription className="font-medium tracking-tight">
-              Enter your details below to join the mission
+              Enter your details below to get started
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-8">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="name" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Operative Name</Label>
+                <Label htmlFor="name" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Full Name</Label>
                 <Input
                   id="name"
                   type="text"
@@ -83,7 +83,7 @@ export function SignupPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Email Terminal</Label>
+                <Label htmlFor="email" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Email Address</Label>
                 <Input
                   id="email"
                   type="email"
@@ -95,7 +95,7 @@ export function SignupPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Password Key</Label>
+                <Label htmlFor="password" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Password</Label>
                 <Input
                   id="password"
                   type="password"
@@ -107,16 +107,16 @@ export function SignupPage() {
               </div>
               <Button type="submit" className="w-full font-bold uppercase tracking-wider h-12 rounded-xl bg-primary text-primary-foreground shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-primary/95 transition-all active:translate-y-[1px] active:shadow-none" disabled={isPending}>
                 {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                Join System
+                Sign Up
               </Button>
             </form>
             <div className="mt-8 text-center text-xs font-bold uppercase tracking-widest text-muted-foreground">
-              Already Registered?{" "}
+              Already have an account?{" "}
               <Link
                 to="/login"
                 className="text-primary hover:text-primary/80 transition-colors border-b border-primary/30 hover:border-primary pb-0.5"
               >
-                Sign in
+                Sign In
               </Link>
             </div>
           </CardContent>

@@ -46,7 +46,7 @@ export function ContestPage() {
     if (isLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-background">
-                <VantaLoader text="LOADING ARENA DATA..." />
+                <VantaLoader text="LOADING CONTEST DATA..." />
             </div>
         )
     }
@@ -118,7 +118,7 @@ export function ContestPage() {
                             className="gap-2 rounded-lg border-2 border-foreground bg-secondary px-4 font-bold uppercase tracking-tight shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all"
                         >
                             <ArrowRight className="h-4 w-4 rotate-180" strokeWidth={3} />
-                            Back to Dash
+                            Go to Dashboard
                         </Button>
                     </div>
 
@@ -171,7 +171,7 @@ export function ContestPage() {
                                 </div>
                                 <div className="flex items-center gap-3 rounded-xl border border-foreground/20 bg-muted/30 px-4 py-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                                     <Info className="w-4 h-4 text-primary" />
-                                    <span className="text-xs font-bold uppercase tracking-tight">{contestData.questions.length} SECTORS</span>
+                                    <span className="text-xs font-bold uppercase tracking-tight">{contestData.questions.length} QUESTIONS</span>
                                 </div>
                             </div>
                         </div>
@@ -199,13 +199,13 @@ export function ContestPage() {
                                         </div>
                                     ) : (
                                         <>
-                                            {contestData.submission ? "RESUME" : "DEPLOY"} <Play className="ml-2 w-6 h-6 fill-current" />
+                                            {contestData.submission ? "RESUME" : "START"} <Play className="ml-2 w-6 h-6 fill-current" />
                                         </>
                                     )}
                                 </Button>
                             )}
-                            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground animate-pulse mt-1">
-                                SECURE LINK ESTABLISHED
+                            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mt-1">
+                                SECURE CONNECTION ESTABLISHED
                             </p>
                         </div>
                     </div>
@@ -219,15 +219,15 @@ export function ContestPage() {
                                 <div className="h-9 w-9 rounded-lg border-2 border-foreground bg-secondary flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                                     <Info className="w-5 h-5 text-foreground" />
                                 </div>
-                                <h2 className="font-display text-2xl font-black tracking-tight uppercase">Mission Briefing</h2>
+                                <h2 className="font-display text-2xl font-black tracking-tight uppercase">Contest Instructions</h2>
                             </div>
 
                             <div className="grid gap-4">
                                 {[
-                                    "Ensure stable uplink before session initiation.",
-                                    "Entry window limited to temporal coordinates.",
-                                    "Neural progress synced to central core automatically.",
-                                    "Unauthorized tools will trigger terminal exclusion."
+                                    "Ensure you have a stable internet connection.",
+                                    "Contest is only available during the specified time.",
+                                    "Your progress is saved automatically during the contest.",
+                                    "Use of unauthorized tools or plagiarism is prohibited."
                                 ].map((step, i) => (
                                     <div key={i} className="flex items-center gap-5 rounded-xl border border-foreground/10 bg-card p-5 shadow-sm group hover:border-foreground transition-all">
                                         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-foreground bg-background font-display text-lg font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
@@ -246,7 +246,7 @@ export function ContestPage() {
                                 <div className="h-9 w-9 rounded-lg border-2 border-foreground bg-yellow-400 flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                                     <Trophy className="w-5 h-5 text-foreground fill-current" />
                                 </div>
-                                <h2 className="font-display text-2xl font-black tracking-tight uppercase">Reward Tiers</h2>
+                                <h2 className="font-display text-2xl font-black tracking-tight uppercase">Prizes & Recognition</h2>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -255,7 +255,7 @@ export function ContestPage() {
                                         <Trophy className="w-7 h-7 text-foreground fill-current" />
                                     </div>
                                     <div>
-                                        <h3 className="text-lg font-bold uppercase tracking-tight">ELITE COMMAND</h3>
+                                        <h3 className="text-lg font-bold uppercase tracking-tight">Top Rankers</h3>
                                         <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mt-1">TOP 3 RANK HOLDERS</p>
                                     </div>
                                 </div>
@@ -264,7 +264,7 @@ export function ContestPage() {
                                         <Clock className="w-7 h-7 text-foreground" />
                                     </div>
                                     <div>
-                                        <h3 className="text-lg font-bold uppercase tracking-tight">SONIC PULSE</h3>
+                                        <h3 className="text-lg font-bold uppercase tracking-tight">Fastest Finisher</h3>
                                         <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mt-1">FASTEST COMPLETION</p>
                                     </div>
                                 </div>

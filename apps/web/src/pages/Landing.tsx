@@ -30,7 +30,7 @@ export function LandingPage() {
                     </div>
 
                     <div className="hidden items-center gap-10 lg:flex">
-                        {["Missions", "Leaderboard", "Challengers"].map((item) => (
+                        {["Contests", "Leaderboard", "About"].map((item) => (
                             <button key={item} className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground transition-all hover:text-primary hover:tracking-[0.3em]">
                                 {item}
                             </button>
@@ -39,10 +39,10 @@ export function LandingPage() {
 
                     <div className="flex items-center gap-4">
                         <Button variant="ghost" className="hidden text-xs font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground sm:flex" onClick={() => navigate("/login")}>
-                            Identify
+                            Login
                         </Button>
                         <Button onClick={() => navigate("/signup")} className="h-11 rounded-xl border-2 border-foreground bg-foreground px-6 text-xs font-bold uppercase tracking-widest text-background shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none active:scale-95">
-                            Join System
+                            Get Started
                         </Button>
                     </div>
                 </div>
@@ -57,7 +57,7 @@ export function LandingPage() {
                             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75"></span>
                             <span className="relative inline-flex h-2 w-2 rounded-full bg-primary"></span>
                         </span>
-                        Live Arena Synchronized
+                        Platform Live Now
                     </div>
 
                     <h1 className="animate-slide-up text-6xl font-black tracking-tight text-foreground sm:text-8xl md:text-9xl uppercase leading-[0.85] italic">
@@ -72,10 +72,10 @@ export function LandingPage() {
 
                     <div className="mt-12 flex animate-slide-up flex-col items-center justify-center gap-6 sm:flex-row" style={{ animationDelay: "0.4s" }}>
                         <Button size="lg" className="h-16 min-w-[200px] rounded-2xl border-2 border-foreground bg-primary text-primary-foreground text-sm font-black uppercase tracking-widest shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all" onClick={() => navigate("/dashboard")}>
-                            Enter Arena <ArrowRight className="ml-2 h-5 w-5" />
+                            Start Coding <ArrowRight className="ml-2 h-5 w-5" />
                         </Button>
                         <Button size="lg" variant="outline" className="h-16 min-w-[200px] rounded-2xl border-2 border-foreground bg-background text-sm font-black uppercase tracking-widest hover:bg-muted transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)]">
-                            Briefing Docs
+                            Documentation
                         </Button>
                     </div>
                 </section>
@@ -84,10 +84,10 @@ export function LandingPage() {
                 <section className="container mx-auto mt-32 max-w-7xl px-4">
                     <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                         {[
-                            { label: "Elite Operatives", value: "24K+", icon: User },
-                            { label: "Successful Missions", value: "2.8M", icon: Target },
-                            { label: "Arena Uptime", value: "99.9%", icon: Zap },
-                            { label: "Global Rankers", value: "150+", icon: Trophy },
+                            { label: "Active Users", value: "24K+", icon: User },
+                            { label: "Code Submissions", value: "2.8M", icon: Target },
+                            { label: "Platform Uptime", value: "99.9%", icon: Zap },
+                            { label: "Monthly Contests", value: "150+", icon: Trophy },
                         ].map((stat, idx) => {
                             const Icon = stat.icon;
                             return (
@@ -104,8 +104,8 @@ export function LandingPage() {
                 {/* FEATURES BENTO */}
                 <section className="container mx-auto mt-40 max-w-7xl px-4">
                     <div className="mb-20 space-y-4">
-                        <Badge className="bg-foreground text-background font-black uppercase tracking-widest text-[9px] rounded-sm">System Specs</Badge>
-                        <h2 className="text-4xl md:text-5xl font-black tracking-tight text-foreground uppercase italic">Engineered for Performance</h2>
+                        <Badge className="bg-foreground text-background font-black uppercase tracking-widest text-[9px] rounded-sm">Platform Specs</Badge>
+                        <h2 className="text-4xl md:text-5xl font-black tracking-tight text-foreground uppercase italic">Engineered for Excellence</h2>
                     </div>
 
                     <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
@@ -149,8 +149,8 @@ export function LandingPage() {
                             </div>
                             <div className="flex-1 rounded-[2.5rem] border-2 border-foreground bg-primary p-10 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-primary-foreground group">
                                 <Shield className="mb-6 h-10 w-10 text-primary-foreground group-hover:animate-bounce" strokeWidth={2.5} />
-                                <h3 className="text-2xl font-black uppercase tracking-tight mb-4">Secure Terminal</h3>
-                                <p className="text-sm text-primary-foreground/80 font-medium leading-relaxed">Robust sandboxing ensures your mission remains isolated and secure.</p>
+                                <h3 className="text-2xl font-black uppercase tracking-tight mb-4">Secure Sandbox</h3>
+                                <p className="text-sm text-primary-foreground/80 font-medium leading-relaxed">Robust execution environments ensure your code remains isolated and secure.</p>
                             </div>
                         </div>
                     </div>
@@ -160,13 +160,13 @@ export function LandingPage() {
                 <section className="mt-40 bg-foreground py-32 text-background relative overflow-hidden">
                     <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,#fff_1px,transparent_1px)] bg-[size:20px_20px]"></div>
                     <div className="container mx-auto max-w-4xl px-4 text-center relative z-10">
-                        <h2 className="text-5xl md:text-7xl font-black tracking-tighter uppercase italic leading-none mb-8">Ready to climb the system?</h2>
+                        <h2 className="text-5xl md:text-7xl font-black tracking-tighter uppercase italic leading-none mb-8">Ready to climb the rankings?</h2>
                         <p className="mx-auto max-w-2xl text-lg md:text-xl text-background/60 font-medium mb-12">
-                            Join the ranks of elite developers solving the worlds hardest
-                            algorithmic challenges. Zero latency. Maximum impact.
+                            Join the ranks of thousands of developers solving the world's most
+                            interesting algorithmic challenges. Zero latency. Maximum speed.
                         </p>
                         <Button size="lg" className="h-16 rounded-2xl border-2 border-background bg-background px-12 text-sm font-black uppercase tracking-[0.2em] text-foreground hover:bg-background/90 transition-all active:scale-95 shadow-[6px_6px_0px_0px_rgba(255,255,255,0.2)]" onClick={() => navigate("/signup")}>
-                            Boot System <MousePointer2 className="ml-3 h-5 w-5" />
+                            Get Started <MousePointer2 className="ml-3 h-5 w-5" />
                         </Button>
                     </div>
                 </section>

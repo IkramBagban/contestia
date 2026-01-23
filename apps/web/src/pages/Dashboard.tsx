@@ -128,7 +128,7 @@ export function DashboardPage() {
     if (isLoading) {
         return (
             <div className="flex h-screen items-center justify-center bg-background">
-                <VantaLoader text="SYNCING MISSIONS..." />
+                <VantaLoader text="SYNCING CONTESTS..." />
             </div>
         );
     }
@@ -177,13 +177,13 @@ export function DashboardPage() {
                 <div className="mb-12 flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
                     <div className="space-y-2">
                         <div className="inline-block rounded-md border border-foreground bg-yellow-400 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] mb-1">
-                            Awaiting Orders
+                            Ready to Code
                         </div>
                         <h1 className="font-display text-4xl md:text-5xl font-black tracking-tight uppercase leading-none">
-                            Available Arenas
+                            Available Contests
                         </h1>
                         <p className="text-muted-foreground font-medium text-lg max-w-xl">
-                            Select your battlefield and prove your dominance.
+                            Select a contest and showcase your skills.
                         </p>
                     </div>
 
@@ -212,8 +212,8 @@ export function DashboardPage() {
                             <div className="mb-6 rounded-2xl border border-foreground bg-background p-5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                                 <Trophy className="h-10 w-10 text-muted-foreground/30" />
                             </div>
-                            <h3 className="text-2xl font-bold uppercase tracking-tight mb-2">Sector Clear</h3>
-                            <p className="max-w-md text-muted-foreground font-medium uppercase tracking-tight">No active missions detected. Await further briefing.</p>
+                            <h3 className="text-2xl font-bold uppercase tracking-tight mb-2">No Contests</h3>
+                            <p className="max-w-md text-muted-foreground font-medium uppercase tracking-tight">There are no active contests at the moment.</p>
                         </div>
                     ) : (
                         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 animate-slide-up">
@@ -251,7 +251,7 @@ export function DashboardPage() {
                                         </div>
 
                                         <p className="line-clamp-3 text-sm text-foreground/70 leading-relaxed font-medium">
-                                            {contest.description?.replace(/<[^>]*>?/gm, "") || "No mission protocol defined. Proceed with caution."}
+                                            {contest.description?.replace(/<[^>]*>?/gm, "") || "No description available for this contest."}
                                         </p>
                                     </div>
 
@@ -272,7 +272,7 @@ export function DashboardPage() {
                                                     </div>
                                                 ) : (
                                                     <>
-                                                        Access Arena
+                                                        Enter Contest
                                                         <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                                                     </>
                                                 )}

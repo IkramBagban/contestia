@@ -58,7 +58,7 @@ export function LoginPage() {
             Contestia
           </h1>
           <p className="text-muted-foreground font-medium uppercase tracking-widest text-[10px]">
-            Secure Mission Access
+            The Ultimate Coding Arena
           </p>
         </div>
 
@@ -66,13 +66,13 @@ export function LoginPage() {
           <CardHeader className="space-y-1 pb-6 border-b border-foreground/5">
             <CardTitle className="text-2xl font-black uppercase tracking-tight">Welcome Back</CardTitle>
             <CardDescription className="font-medium tracking-tight">
-              Initialize identification sequence to proceed
+              Enter your credentials to continue
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-8">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Email Terminal</Label>
+                <Label htmlFor="email" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Email Address</Label>
                 <Input
                   id="email"
                   placeholder="name@example.com"
@@ -85,7 +85,7 @@ export function LoginPage() {
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Password Key</Label>
+                  <Label htmlFor="password" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Password</Label>
                 </div>
                 <Input
                   id="password"
@@ -98,13 +98,13 @@ export function LoginPage() {
               </div>
               <Button type="submit" className="w-full font-bold uppercase tracking-wider h-12 rounded-xl bg-primary text-primary-foreground shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-primary/95 transition-all active:translate-y-[1px] active:shadow-none" disabled={isPending}>
                 {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                Access Arena
+                Sign In
               </Button>
             </form>
             <div className="mt-8 text-center text-xs font-bold uppercase tracking-widest text-muted-foreground">
-              New Recruit?{" "}
+              Need an account?{" "}
               <Link to="/signup" className="text-primary hover:text-primary/80 transition-colors border-b border-primary/30 hover:border-primary pb-0.5">
-                Join System
+                Sign Up
               </Link>
             </div>
           </CardContent>
