@@ -339,8 +339,8 @@ export function ContestAttemptPage() {
     return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
 
-  if (isLoading) return <div className="flex h-screen items-center justify-center bg-background"><VantaLoader text="PREPARING MISSION..." /></div>;
-  if (error || !contestData) return <div className="flex h-screen items-center justify-center text-destructive bg-background font-black italic tracking-tighter uppercase p-10 border-4 border-destructive m-10">ERROR: MISSION DATA CORRUPTED</div>;
+  if (isLoading) return <div className="flex h-screen items-center justify-center bg-background"><VantaLoader text="PREPARING CONTEST..." /></div>;
+  if (error || !contestData) return <div className="flex h-screen items-center justify-center text-destructive bg-background font-black italic tracking-tighter uppercase p-10 border-4 border-destructive m-10">ERROR: CONTEST DATA CORRUPTED</div>;
 
   const currentQuestion = contestData.questions?.[currentQuestionIndex]?.question;
   const totalQuestions = contestData.questions?.length;
@@ -422,7 +422,7 @@ export function ContestAttemptPage() {
                 <div className="h-full flex flex-col pt-10 px-6">
                   <h2 className="text-2xl font-display font-bold mb-6 flex items-center gap-2 tracking-tight">
                     <Trophy className="h-6 w-6 text-yellow-500" />
-                    Live Leaderboard
+                    Leaderboard
                   </h2>
                   <div className="flex-1 overflow-hidden">
                     <RealtimeLeaderboard contestId={id || ""} compact={true} contestStatus={contestStatus} />
@@ -435,7 +435,7 @@ export function ContestAttemptPage() {
               onClick={handleSubmit}
               className="h-10 rounded-lg border border-foreground bg-primary px-4 font-bold text-primary-foreground transition-all hover:bg-primary/90 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.1)] active:translate-y-[1px] active:shadow-none"
             >
-              Finish Mission
+              Submit Contest
             </Button>
           </div>
         </div>
@@ -569,7 +569,7 @@ export function ContestAttemptPage() {
                 {runResult && (
                   <div className="rounded-xl border border-foreground bg-muted/50 p-6 space-y-4 mt-6">
                     <div className="flex items-center justify-between">
-                      <h4 className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Verification Report</h4>
+                      <h4 className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Test Report</h4>
                       <span className={cn(
                         "text-sm font-mono font-bold px-3 py-1 rounded-full border",
                         runResult.passed === (runResult.total || 0)
@@ -599,7 +599,7 @@ export function ContestAttemptPage() {
                           )}
                         >
                           <div className="flex items-center justify-between mb-3">
-                            <span className="font-bold uppercase tracking-tight text-xs">Sector {idx + 1}</span>
+                            <span className="font-bold uppercase tracking-tight text-xs">Test Case {idx + 1}</span>
                             <span className={cn(
                               "text-[10px] font-black px-2 py-0.5 rounded border uppercase tracking-widest",
                               result.passed ? "border-green-500/30 text-green-600 bg-green-50" : "border-red-500/30 text-red-600 bg-red-50"
@@ -695,7 +695,7 @@ export function ContestAttemptPage() {
         <div className="lg:col-span-3 order-first lg:order-last mb-6 lg:mb-0">
           <div className="sticky top-24 rounded-2xl border border-foreground bg-card p-6 shadow-sm">
             <div className="mb-6 flex items-center justify-between border-b border-foreground/10 pb-4">
-              <h3 className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Progression</h3>
+              <h3 className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Questions</h3>
               <span className="font-mono text-sm font-bold text-primary">
                 {Object.keys(answers).length}/{totalQuestions}
               </span>
@@ -745,11 +745,11 @@ export function ContestAttemptPage() {
               </div>
               <div className="flex items-center gap-3 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                 <div className="h-2.5 w-2.5 rounded-sm border border-green-500 bg-green-500"></div>
-                <span>Neutralized</span>
+                <span>Solved</span>
               </div>
               <div className="flex items-center gap-3 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                 <div className="h-2.5 w-2.5 rounded-sm border border-red-500 bg-red-500"></div>
-                <span>Bypassed</span>
+                <span>Incorrect</span>
               </div>
             </div>
           </div>

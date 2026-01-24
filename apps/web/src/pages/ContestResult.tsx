@@ -32,7 +32,7 @@ export const ContestResultPage = () => {
             <div className="flex min-h-screen items-center justify-center bg-background transform transition-all duration-300">
                 <div className="flex flex-col items-center gap-4">
                     <div className="h-12 w-12 animate-spin rounded-xl border-4 border-foreground" />
-                    <p className="font-display font-black italic uppercase tracking-widest text-muted-foreground">Finalizing Mission...</p>
+                    <p className="font-display font-black italic uppercase tracking-widest text-muted-foreground">Finalizing Submission...</p>
                 </div>
             </div>
         );
@@ -45,9 +45,9 @@ export const ContestResultPage = () => {
                     <XCircle className="h-10 w-10 text-destructive" strokeWidth={3} />
                 </div>
                 <h1 className="text-3xl font-display font-black italic uppercase tracking-tighter mb-2">Sync Error</h1>
-                <p className="text-muted-foreground mb-8 max-w-sm mx-auto font-medium">Your performance data couldn't be synchronized. The arena connection is unstable.</p>
+                <p className="text-muted-foreground mb-8 max-w-sm mx-auto font-medium">Your score couldn't be synchronized. Please check your connection.</p>
                 <Button onClick={() => navigate("/dashboard")} className="h-14 rounded-xl border-2 border-foreground bg-primary hover:bg-primary/90 text-primary-foreground font-black uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-[2px] active:shadow-none transition-all">
-                    Return to Hub
+                    Go to Dashboard
                 </Button>
             </div>
         );
@@ -81,7 +81,7 @@ export const ContestResultPage = () => {
                 <div className="container mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
                     <Link to="/dashboard" className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground transition-all">
                         <ArrowLeft className="h-3.5 w-3.5" />
-                        Exit Arena
+                        Exit
                     </Link>
                     <div className="flex items-center gap-2.5 px-3 py-1 bg-yellow-400 border border-foreground rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                         <div className="h-1.5 w-1.5 rounded-full bg-foreground animate-pulse" />
@@ -99,13 +99,13 @@ export const ContestResultPage = () => {
                     <div className="flex flex-col md:flex-row items-center justify-between gap-12 relative z-10">
                         <div className="text-center md:text-left space-y-6">
                             <Badge className="bg-primary hover:bg-primary text-primary-foreground border border-foreground px-3 py-0.5 text-[9px] font-bold uppercase tracking-widest shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
-                                Ranked Match Over
+                                Contest Completed
                             </Badge>
                             <h1 className="font-display text-4xl sm:text-6xl font-black tracking-tight leading-tight uppercase">
-                                Mission <br /> <span className="text-primary">Accomplished.</span>
+                                Contest <br /> <span className="text-primary">Completed.</span>
                             </h1>
                             <p className="text-lg text-muted-foreground font-medium max-w-md tracking-tight">
-                                Data extraction for <span className="text-foreground underline decoration-primary/30 decoration-2 underline-offset-4">{contestData.title}</span> complete.
+                                Results for <span className="text-foreground underline decoration-primary/30 decoration-2 underline-offset-4">{contestData.title}</span>.
                             </p>
                         </div>
 
@@ -117,7 +117,7 @@ export const ContestResultPage = () => {
                             </div>
 
                             <div className="flex flex-col items-center sm:items-start space-y-1">
-                                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Final Standing</div>
+                                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Final Score</div>
                                 <div className="flex items-baseline gap-2">
                                     <span className="text-7xl font-black text-foreground tabular-nums tracking-tighter">{userScore}</span>
                                     <span className="text-2xl font-bold text-muted-foreground">/{totalPoints}</span>
@@ -252,7 +252,7 @@ export const ContestResultPage = () => {
                             <Zap className="h-8 w-8 text-primary/50 mb-4" />
                             <h4 className="font-bold text-[10px] mb-2 uppercase tracking-widest">Growth Metric</h4>
                             <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
-                                Performance is an iterative process. Every completed mission adds to your global leverage. Check your standing to calibrate your path.
+                                Learning and improving is a continuous process. Every contest helps you grow as a developer. Keep practicing!
                             </p>
                         </div>
                     </div>
@@ -263,7 +263,7 @@ export const ContestResultPage = () => {
                 <footer className="mt-32 pt-12 border-t border-foreground/10 flex flex-col sm:flex-row items-center justify-between gap-6 opacity-40 mb-12">
                     <div className="flex items-center gap-3">
                         <div className="h-2 w-2 rounded-full bg-primary" />
-                        <span className="text-[9px] font-bold uppercase tracking-[0.3em]">Contestia Secure Terminal</span>
+                        <span className="text-[9px] font-bold uppercase tracking-[0.3em]">Contestia Secure Platform</span>
                     </div>
                     <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">© {new Date().getFullYear()} Operation Success</p>
                 </footer>

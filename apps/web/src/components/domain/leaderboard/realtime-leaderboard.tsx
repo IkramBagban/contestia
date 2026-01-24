@@ -1,6 +1,6 @@
 import { useLeaderboard } from "@/hooks/use-leaderboard";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Trophy, Medal, Users, Wifi, WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -31,8 +31,8 @@ export function RealtimeLeaderboard({ contestId, className, compact = false, con
                 <div className="flex items-center justify-between pb-4 border-b border-foreground/10 mb-4 px-1">
                     <div className="flex items-center gap-2 text-sm font-black uppercase tracking-widest text-foreground">
                         <Trophy className="h-4 w-4 text-primary" />
-                        {contestStatus === "UPCOMING" ? "Mission Standing" :
-                            contestStatus === "PAST" ? "Final Results" : "Live Feed"}
+                        {contestStatus === "UPCOMING" ? "Leaderboard" :
+                            contestStatus === "PAST" ? "Final Standings" : "Live Leaderboard"}
                     </div>
                     {contestStatus === "LIVE" ? (
                         <Badge variant={isConnected ? "default" : "destructive"} className="text-[9px] font-bold h-5 gap-1.5 px-2 rounded-full border border-foreground/10">
@@ -53,8 +53,8 @@ export function RealtimeLeaderboard({ contestId, className, compact = false, con
                         <Users className="h-5 w-5" />
                     </div>
                     <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">
-                        {contestStatus === "UPCOMING" ? "Awaiting sync..." :
-                            contestStatus === "PAST" ? "No records found" : "No operatives active"}
+                        {contestStatus === "UPCOMING" ? "Waiting for sync..." :
+                            contestStatus === "PAST" ? "No records found" : "No active participants"}
                     </p>
                 </div>
             ) : (
@@ -63,8 +63,8 @@ export function RealtimeLeaderboard({ contestId, className, compact = false, con
                         <div className="grid grid-cols-12 gap-2 px-3 py-2 text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 border-b border-foreground/5">
                             <div className="col-span-2 text-center">Rnk</div>
                             <div className="col-span-10 flex justify-between">
-                                <span>Operative</span>
-                                <span>Points</span>
+                                <span>User</span>
+                                <span>Score</span>
                             </div>
                         </div>
                         {leaderboard.map((entry, index) => (
