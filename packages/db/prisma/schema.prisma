@@ -18,11 +18,12 @@ model User {
   email    String @unique
   password String
 
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  contests    Contest[]
-  questions   Question[]
-  submissions Submission[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  contests     Contest[]
+  questions    Question[]
+  submissions  Submission[]
+  participants Participant[]
 
   @@index([email])
 }
@@ -40,9 +41,10 @@ model Contest {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  questions   QuestionsInContests[]
-  user        User                  @relation(fields: [userId], references: [id])
-  submissions Submission[]
+  questions    QuestionsInContests[]
+  user         User                  @relation(fields: [userId], references: [id])
+  submissions  Submission[]
+  participants Participant[]
 }
 
 enum QuestionType {
@@ -119,6 +121,29 @@ model Submission {
   answers     Json
   startedAt   DateTime         @default(now())
   submittedAt DateTime?
+
+  user    User    @relation(fields: [userId], references: [id])
+  contest Contest @relation(fields: [contestId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, contestId])
+}
+
+enum ParticipantStatus {
+  REGISTERED
+  PARTICIPATING
+  DISQUALIFIED
+}
+
+model Participant {
+  id        String            @id @default(uuid())
+  userId    String
+  contestId String
+  status    ParticipantStatus @default(REGISTERED)
+  score     Int               @default(0)
+  rank      Int?
 
   user    User    @relation(fields: [userId], references: [id])
   contest Contest @relation(fields: [contestId], references: [id])

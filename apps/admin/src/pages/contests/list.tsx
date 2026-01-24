@@ -8,10 +8,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Plus, Edit2, Trophy, Eye } from "lucide-react"
+import { Plus, Edit2, Trophy, Eye, Users } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { Badge } from "@/components/ui/badge"
-import { useContests, Contest } from "@/hooks/use-queries"
+import { useContests, type Contest } from "@/hooks/use-queries"
 
 export function ContestsList() {
   const navigate = useNavigate()
@@ -115,8 +115,9 @@ function ContestTable({
                   {new Date(contest.startDate).toLocaleDateString()} {contest.startTime}
                 </TableCell>
                 <TableCell className="font-mono">{contest.totalPoints || 0}</TableCell>
-                <TableCell className="font-mono text-muted-foreground">-</TableCell>
-                {/* Participants not in API response yet */}
+                <TableCell className="font-mono text-muted-foreground">
+                  -
+                </TableCell>
                 <TableCell>
                   <StatusBadge contest={contest} />
                 </TableCell>
@@ -147,8 +148,18 @@ function ContestTable({
                     size="sm"
                     className="h-8 w-8 p-0"
                     onClick={() => contest.id && navigate(`/contests/${contest.id}`)}
+                    title="View Leaderboard"
                   >
                     <Eye className="h-4 w-4 text-muted-foreground" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={() => contest.id && navigate(`/contests/${contest.id}/participants`)}
+                    title="View Participants"
+                  >
+                    <Users className="h-4 w-4 text-muted-foreground" />
                   </Button>
                 </TableCell>
               </TableRow>

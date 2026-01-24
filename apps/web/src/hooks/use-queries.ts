@@ -79,6 +79,18 @@ export function useStartContest() {
   });
 }
 
+export function useRegisterContest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (contestId: string) => api.post(`/contests/${contestId}/register`).then(res => res.data.data),
+    onSuccess: (_, contestId) => {
+      const user = queryClient.getQueryData<any>(['me']);
+      const userId = user?.id || 'guest';
+      queryClient.invalidateQueries({ queryKey: ['contest-attempt', contestId, userId] });
+    }
+  });
+}
+
 export function useSubmitContest() {
   const queryClient = useQueryClient();
 

@@ -6,6 +6,7 @@ import { DashboardHome } from './pages/dashboard/home'
 import { ContestsList } from './pages/contests/list'
 import { CreateContest } from './pages/contests/create'
 import { ContestDetail } from './pages/contests/detail'
+import { ParticipantsPage } from './pages/contests/participants'
 import { CreateQuestion } from './pages/questions/create'
 
 import { QuestionsList } from './pages/questions/list'
@@ -25,6 +26,7 @@ function App() {
           <Route path="dashboard" element={<DashboardHome />} />
           <Route path="contests" element={<ContestsList />} />
           <Route path="contests/:id" element={<ContestDetail />} />
+          <Route path="contests/:id/participants" element={<ParticipantsPage />} />
           <Route path="contests/new" element={<CreateContest />} />
           <Route path="contests/edit/:id" element={<CreateContest />} />
           <Route path="questions" element={<QuestionsList />} />

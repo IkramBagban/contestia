@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button"
 import { useParams, useNavigate } from "react-router-dom"
 import { Trophy, Clock, ArrowRight, Calendar, Info, Play, Zap } from "lucide-react"
 import { RealtimeLeaderboard } from "@/components/domain/leaderboard/realtime-leaderboard"
-import { useContestForAttempt, useStartContest } from "@/hooks/use-queries"
+import { useContestForAttempt, useStartContest, useRegisterContest } from "@/hooks/use-queries"
 import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
 import { VantaLoader } from "@/components/ui/vanta-loader"
@@ -18,6 +18,7 @@ export function ContestPage() {
     // Ideally use a lighter query, but this works for now
     const { data: contestData, isLoading, error } = useContestForAttempt(id || "")
     const { mutate: startContest, isPending: isStarting } = useStartContest();
+    const { mutate: registerContest, isPending: isRegistering } = useRegisterContest();
 
     const handleEnterContest = () => {
         if (!id) return;
@@ -186,23 +187,47 @@ export function ContestPage() {
                                     RESULTS <ArrowRight className="ml-2 w-5 h-5" />
                                 </Button>
                             ) : (
-                                <Button
-                                    size="lg"
-                                    onClick={handleEnterContest}
-                                    disabled={isStarting}
-                                    className="h-20 w-full lg:w-72 rounded-2xl border-2 border-foreground bg-primary px-10 text-xl font-bold uppercase tracking-tight text-primary-foreground shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none"
-                                >
-                                    {isStarting ? (
-                                        <div className="flex items-center gap-2">
-                                            <Loader2 className="h-5 w-5 animate-spin" />
-                                            STARTING
-                                        </div>
+                                status === "UPCOMING" ? (
+                                    contestData?.participant ? (
+                                        <Button
+                                            size="lg"
+                                            disabled={true}
+                                            className="h-20 w-full lg:w-72 rounded-2xl border-2 border-foreground bg-secondary px-10 text-xl font-bold uppercase tracking-tight text-secondary-foreground shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] opacity-100"
+                                        >
+                                            REGISTERED <div className="ml-2 h-3 w-3 rounded-full bg-green-500 animate-pulse" />
+                                        </Button>
                                     ) : (
-                                        <>
-                                            {contestData.submission ? "RESUME" : "START"} <Play className="ml-2 w-6 h-6 fill-current" />
-                                        </>
-                                    )}
-                                </Button>
+                                        <Button
+                                            size="lg"
+                                            onClick={() => id && registerContest(id, {
+                                                onSuccess: () => toast.success("Registered successfully!"),
+                                                onError: (e: any) => toast.error(e.message || "Failed to register")
+                                            })}
+                                            disabled={isRegistering}
+                                            className="h-20 w-full lg:w-72 rounded-2xl border-2 border-foreground bg-primary px-10 text-xl font-bold uppercase tracking-tight text-primary-foreground shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none bg-blue-600 hover:bg-blue-700"
+                                        >
+                                            {isRegistering ? <Loader2 className="h-5 w-5 animate-spin" /> : "REGISTER NOW"}
+                                        </Button>
+                                    )
+                                ) : (
+                                    <Button
+                                        size="lg"
+                                        onClick={handleEnterContest}
+                                        disabled={isStarting}
+                                        className="h-20 w-full lg:w-72 rounded-2xl border-2 border-foreground bg-primary px-10 text-xl font-bold uppercase tracking-tight text-primary-foreground shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none"
+                                    >
+                                        {isStarting ? (
+                                            <div className="flex items-center gap-2">
+                                                <Loader2 className="h-5 w-5 animate-spin" />
+                                                STARTING
+                                            </div>
+                                        ) : (
+                                            <>
+                                                {contestData.submission ? "RESUME" : "START"} <Play className="ml-2 w-6 h-6 fill-current" />
+                                            </>
+                                        )}
+                                    </Button>
+                                )
                             )}
                             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mt-1">
                                 SECURE CONNECTION ESTABLISHED

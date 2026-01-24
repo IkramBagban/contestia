@@ -187,6 +187,17 @@ export function useUpdateContest() {
   });
 }
 
+export function useContestParticipants(id: string) {
+  return useQuery({
+    queryKey: ['contest-participants', id],
+    queryFn: async () => {
+      const { data } = await api.get<{ success: boolean; data: any[] }>(`/contests/${id}/participants`);
+      return data.data;
+    },
+    enabled: !!id,
+  });
+}
+
 // --- Question Hooks ---
 
 export function useQuestions(page: number = 1, limit: number = 50) {

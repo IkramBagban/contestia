@@ -221,6 +221,55 @@ export const updateContest = async (
   }
 };
 
+export const registerContest = async (
+  req: ExtendedRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user!.id;
+
+    if (!id) {
+      throw Object.assign(new Error("Contest id is required"), { status: 400 });
+    }
+
+    const contest = await prismaClient.contest.findUnique({ where: { id } });
+    if (!contest) {
+      throw Object.assign(new Error("Contest not found"), { status: 404 });
+    }
+
+    let participant = await prismaClient.participant.findUnique({
+      where: {
+        userId_contestId: {
+          userId,
+          contestId: id,
+        },
+      },
+    });
+
+    if (participant) {
+      throw Object.assign(new Error("Already registered for this contest"), { status: 400 });
+    }
+
+    participant = await prismaClient.participant.create({
+      data: {
+        userId,
+        contestId: id,
+        status: "REGISTERED",
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Registered successfully",
+      data: participant,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const startContest = async (
   req: ExtendedRequest,
   res: Response,
@@ -282,6 +331,26 @@ export const startContest = async (
       throw Object.assign(new Error("Contest has not started yet"), { status: 400 });
     }
 
+    // Upsert participant to PARTICIPATING
+    let participant = await prismaClient.participant.findUnique({
+      where: { userId_contestId: { userId, contestId: id } }
+    });
+
+    if (!participant) {
+      // Auto-register if not already registered (optional, but good UX)
+      participant = await prismaClient.participant.create({
+        data: { userId, contestId: id, status: "PARTICIPATING" }
+      });
+    } else if (participant.status === "REGISTERED") {
+      participant = await prismaClient.participant.update({
+        where: { id: participant.id },
+        data: { status: "PARTICIPATING" }
+      });
+    } else if (participant.status === "DISQUALIFIED") {
+      throw Object.assign(new Error("You have been disqualified from this contest"), { status: 403 });
+    }
+
+    // Ensure submission also exists for backward compatibility and tracking
     let submission = await prismaClient.submission.findUnique({
       where: {
         userId_contestId: {
@@ -326,6 +395,10 @@ export const submitContest = async (
     const { id } = req.params;
     const userId = req.user!.id;
     const { answers } = req.body;
+
+    if (!id) {
+      throw Object.assign(new Error("Contest id is required"), { status: 400 });
+    }
 
     const submission = await prismaClient.submission.findUnique({
       where: { userId_contestId: { userId, contestId: id } },
@@ -394,6 +467,12 @@ export const submitContest = async (
       },
     });
 
+    // Also update Participant score
+    await prismaClient.participant.update({
+      where: { userId_contestId: { userId, contestId: id } },
+      data: { score }
+    });
+
     await redisManager.redis.zadd(`contest:${id}:leaderboard`, score, userId);
 
     res.status(200).json({
@@ -456,11 +535,21 @@ export const getContestForAttempt = async (
       }
     });
 
+    const participant = await prismaClient.participant.findUnique({
+      where: {
+        userId_contestId: {
+          userId,
+          contestId: id
+        }
+      }
+    });
+
     res.status(200).json({
       success: true,
       data: {
         ...contest,
-        submission
+        submission,
+        participant
       },
     });
   } catch (error) {
@@ -570,6 +659,18 @@ export const saveProgress = async (
       }
     });
 
+    // Also update Participant score
+    try {
+      await prismaClient.participant.update({
+        where: { userId_contestId: { userId, contestId: id } },
+        data: { score: totalScore }
+      });
+    } catch (e) {
+      // Participant might not exist if they started before we added this table or other edge cases
+      // Just ignore or log, don't fail the request
+      console.error("Failed to update participant score:", e);
+    }
+
     await redisManager.redis.zadd(`contest:${id}:leaderboard`, totalScore, userId);
 
     res.status(200).json({
@@ -585,3 +686,38 @@ export const saveProgress = async (
 };
 
 
+
+export const getContestParticipants = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    const { page = 1, limit = 50 } = req.query;
+    const p = Math.max(Number(page) || 1, 1);
+    const l = Math.min(Number(limit) || 50, 100);
+
+    const participants = await prismaClient.participant.findMany({
+      where: { contestId: id },
+      skip: (p - 1) * l,
+      take: l,
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+          }
+        }
+      },
+      orderBy: { score: 'desc' }
+    });
+
+    res.status(200).json({
+      success: true,
+      data: participants,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
