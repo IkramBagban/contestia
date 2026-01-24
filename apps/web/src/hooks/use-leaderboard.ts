@@ -1,17 +1,19 @@
 import { useEffect, useState, useRef } from 'react';
 
 // Types (should ideally come from shared types, but defining here for now)
-export enum WebSocketMessageType {
-    SUBSCRIBE_LEADERBOARD = "SUBSCRIBE_LEADERBOARD",
-    UNSUBSCRIBE_LEADERBOARD = "UNSUBSCRIBE_LEADERBOARD",
-    LEADERBOARD_UPDATE = "LEADERBOARD_UPDATE",
-    ERROR = "ERROR"
-}
+export const WebSocketMessageType = {
+    SUBSCRIBE_LEADERBOARD: "SUBSCRIBE_LEADERBOARD",
+    UNSUBSCRIBE_LEADERBOARD: "UNSUBSCRIBE_LEADERBOARD",
+    LEADERBOARD_UPDATE: "LEADERBOARD_UPDATE",
+    ERROR: "ERROR"
+} as const;
+
+export type WebSocketMessageType = typeof WebSocketMessageType[keyof typeof WebSocketMessageType];
 
 export interface LeaderboardEntry {
     userId: string;
+    email: string;
     score: number;
-    // potentially add rank, username, avatar later
 }
 
 const WS_URL = 'ws://localhost:3000'; // Environment variable in real app

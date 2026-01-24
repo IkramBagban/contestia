@@ -86,11 +86,11 @@ export function LeaderboardPage() {
                                     </div>
                                     <div className="col-span-8 flex items-center gap-4">
                                         <div className="h-10 w-10 rounded-xl border-2 border-foreground bg-secondary flex items-center justify-center font-black text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                                            {entry.userId?.slice(0, 2).toUpperCase()}
+                                            {entry.email?.slice(0, 2).toUpperCase()}
                                         </div>
                                         <div className="flex flex-col">
                                             <span className="text-lg font-black tracking-tight uppercase group-hover:text-primary transition-colors">
-                                                {entry.userId}
+                                                {entry.email}
                                             </span>
                                             <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Verified Operative</span>
                                         </div>

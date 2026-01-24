@@ -81,10 +81,10 @@ export function RealtimeLeaderboard({ contestId, className, compact = false, con
                                 <div className="col-span-10 flex items-center justify-between">
                                     <div className="flex items-center gap-3 min-w-0">
                                         <div className="shrink-0 h-6 w-6 rounded-lg border border-foreground/10 bg-secondary flex items-center justify-center text-[9px] font-black text-foreground/70">
-                                            {entry.userId?.slice(0, 2).toUpperCase()}
+                                            {(entry.email || entry.userId).slice(0, 2).toUpperCase()}
                                         </div>
-                                        <span className="truncate text-xs font-bold tracking-tight uppercase text-foreground/80" title={entry.userId}>
-                                            {entry.userId}
+                                        <span className="truncate text-xs font-bold tracking-tight uppercase text-foreground/80" title={entry.email || entry.userId}>
+                                            {entry.email || entry.userId}
                                         </span>
                                     </div>
                                     <span className="shrink-0 font-mono font-black text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20">

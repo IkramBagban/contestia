@@ -80,10 +80,10 @@ export function RealtimeLeaderboard({ contestId, className, compact = false, con
                                     <TableCell className="font-medium py-3 px-2">
                                         <div className="flex items-center gap-2">
                                             <div className="shrink-0 h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">
-                                                {entry.userId.slice(0, 2).toUpperCase()}
+                                                {entry.email.slice(0, 2).toUpperCase()}
                                             </div>
                                             <span className="truncate max-w-[180px] sm:max-w-[240px] text-xs sm:text-sm" title={entry.userId}>
-                                                {entry.userId}
+                                                {entry.email}
                                             </span>
                                         </div>
                                     </TableCell>
@@ -151,10 +151,10 @@ export function RealtimeLeaderboard({ contestId, className, compact = false, con
                                     <TableCell className="font-medium py-3">
                                         <div className="flex items-center gap-2">
                                             <div className="shrink-0 h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">
-                                                {entry.userId.slice(0, 2).toUpperCase()}
+                                                {entry.email.slice(0, 2).toUpperCase()}
                                             </div>
                                             <span className="truncate max-w-[120px] md:max-w-[180px]">
-                                                {entry.userId}
+                                                {entry.email}
                                             </span>
                                         </div>
                                     </TableCell>

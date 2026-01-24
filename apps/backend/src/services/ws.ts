@@ -1,6 +1,7 @@
 import { WebSocket } from "ws";
 import { WebSocketMessageType, type WSResponse } from "../../utils/types";
 import { redisManager } from "./redis";
+import prismaClient from "@repo/db";
 
 const websocketHandler = (ws: WebSocket) => {
     console.log("[WS] Client connected");
@@ -41,17 +42,37 @@ const websocketHandler = (ws: WebSocket) => {
                 `contest:${contestId}:leaderboard`,
                 0,
                 -1,
-                "WITHSCORES" // if i don't add this then this will only retur user idsF
+                "WITHSCORES"
             );
 
-            const leaderboard = [];
+            const userIds: string[] = [];
+            const scoresMap: Record<string, number> = {};
+
             for (let i = 0; i < leaderboardRaw.length; i += 2) {
                 const userId = leaderboardRaw[i];
                 const score = leaderboardRaw[i + 1];
                 if (userId && score) {
-                    leaderboard.push({ userId, score: parseInt(score) });
+                    userIds.push(userId);
+                    scoresMap[userId] = parseInt(score);
                 }
             }
+
+            // Fetch user details (emails) from DB
+            const users = await prismaClient.user.findMany({
+                where: { id: { in: userIds } },
+                select: { id: true, email: true }
+            });
+
+            const userMap = users.reduce((acc, user) => {
+                acc[user.id] = user.email;
+                return acc;
+            }, {} as Record<string, string>);
+
+            const leaderboard = userIds.map(userId => ({
+                userId,
+                email: userMap[userId] || "Unknown",
+                score: scoresMap[userId] || 0
+            }));
 
             sendMessage({
                 type: WebSocketMessageType.LEADERBOARD_UPDATE,
