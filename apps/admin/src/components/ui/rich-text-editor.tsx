@@ -3,16 +3,16 @@ import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
 import Link from '@tiptap/extension-link'
 import { Button } from '@/components/ui/button'
-import { 
-  Bold, 
-  Italic, 
-  Underline as UnderlineIcon, 
-  Strikethrough, 
-  List, 
-  ListOrdered, 
-  Quote, 
-  Code, 
-  Undo, 
+import {
+  Bold,
+  Italic,
+  Underline as UnderlineIcon,
+  Strikethrough,
+  List,
+  ListOrdered,
+  Quote,
+  Code,
+  Undo,
   Redo,
   Heading1,
   Heading2
@@ -69,7 +69,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
       >
         <Strikethrough className="h-4 w-4" />
       </Button>
-      
+
       <div className="mx-1 w-[1px] bg-border" />
 
       <Button
@@ -107,7 +107,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
       >
         <ListOrdered className="h-4 w-4" />
       </Button>
-      
+
       <div className="mx-1 w-[1px] bg-border" />
 
       <Button
@@ -149,7 +149,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
   )
 }
 
-export function RichTextEditor({ value, onChange, placeholder, className }: RichTextEditorProps) {
+export function RichTextEditor({ value, onChange, className }: RichTextEditorProps) {
   const editor = useEditor({
     extensions: [
       StarterKit,

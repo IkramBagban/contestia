@@ -49,6 +49,7 @@ function Button({
   const Comp = asChild ? Slot : "button"
 
   return (
+    // @ts-expect-error - Ref type mismatch with React 19
     <Comp
       data-slot="button"
       data-variant={variant}

@@ -49,7 +49,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Edit2, Eye } from "lucide-react"
+import { Edit2 } from "lucide-react"
 
 interface QuestionTableProps {
   questions: Question[]
@@ -59,14 +59,14 @@ interface QuestionTableProps {
   onEdit?: (id: string) => void
 }
 
-export function QuestionTable({ 
-  questions, 
-  isSelectable = false, 
-  selectedIds = [], 
+export function QuestionTable({
+  questions,
+  isSelectable = false,
+  selectedIds = [],
   onSelectionChange,
   onEdit
 }: QuestionTableProps) {
-  
+
   const toggleSelection = (id: string) => {
     if (!onSelectionChange) return
     if (selectedIds.includes(id)) {
@@ -92,7 +92,7 @@ export function QuestionTable({
           <TableRow className="border-border/50 hover:bg-muted/50">
             {isSelectable && (
               <TableHead className="w-12 text-center">
-                <Checkbox 
+                <Checkbox
                   checked={questions.length > 0 && selectedIds.length === questions.length}
                   onCheckedChange={toggleAll}
                 />
@@ -116,7 +116,7 @@ export function QuestionTable({
               <TableRow key={question.id} className="border-border/50 hover:bg-muted/50">
                 {isSelectable && (
                   <TableCell className="text-center">
-                    <Checkbox 
+                    <Checkbox
                       checked={selectedIds.includes(question.id)}
                       onCheckedChange={() => toggleSelection(question.id)}
                     />
@@ -129,10 +129,10 @@ export function QuestionTable({
                 <TableCell className="font-mono text-muted-foreground">{question.points}</TableCell>
                 {!isSelectable && (
                   <TableCell className="text-right space-x-2">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-8 w-8 p-0 cursor-pointer" 
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 cursor-pointer"
                       onClick={() => onEdit?.(question.id)}
                     >
                       <Edit2 className="h-4 w-4 text-muted-foreground" />

@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button"
 import { useNavigate, useParams } from "react-router-dom"
-import { ArrowLeft, Wifi, WifiOff, Users, BadgeCheck, FileX } from "lucide-react"
+import { ArrowLeft, Users, BadgeCheck } from "lucide-react"
 import { useContestParticipants } from "@/hooks/use-queries"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"

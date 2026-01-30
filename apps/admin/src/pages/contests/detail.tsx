@@ -2,10 +2,9 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useContest } from "@/hooks/use-queries";
 import { RealtimeLeaderboard } from "@/components/domain/leaderboard/realtime-leaderboard";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Calendar, Clock, Trophy } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 export function ContestDetail() {
     const { id } = useParams<{ id: string }>();

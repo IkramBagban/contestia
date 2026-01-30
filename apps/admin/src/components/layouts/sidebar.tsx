@@ -1,12 +1,10 @@
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { cn } from "@/lib/utils"
-import { 
-  LayoutDashboard, 
-  Trophy, 
-  FileQuestion, 
-  Settings, 
+import {
+  LayoutDashboard,
+  Trophy,
+  FileQuestion,
   LogOut,
-  Users
 } from "lucide-react"
 import { useLogout } from "@/hooks/use-queries"
 import { toast } from "sonner"
@@ -65,20 +63,20 @@ export function Sidebar({ className }: { className?: string }) {
           Contestia
         </h1>
       </div>
-      
+
       <nav className="flex-1 p-4 space-y-2">
         {sidebarItems.map((item) => {
           const isActive = location.pathname.startsWith(item.href)
           const Icon = item.icon
-          
+
           return (
             <Link
               key={item.href}
               to={item.href}
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-200 text-sm font-medium",
-                isActive 
-                  ? "bg-primary/10 text-primary hover:bg-primary/15" 
+                isActive
+                  ? "bg-primary/10 text-primary hover:bg-primary/15"
                   : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
               )}
             >
@@ -90,7 +88,7 @@ export function Sidebar({ className }: { className?: string }) {
       </nav>
 
       <div className="p-4 border-t border-border/50">
-        <button 
+        <button
           onClick={handleLogout}
           disabled={logout.isPending}
           className="flex items-center gap-3 px-3 py-2.5 w-full rounded-md text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"

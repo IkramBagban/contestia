@@ -15,7 +15,7 @@ import { useContests, type Contest } from "@/hooks/use-queries"
 
 export function ContestsList() {
   const navigate = useNavigate()
-  const { data: contests = [], isLoading, error } = useContests()
+  const { data: contests = [], isLoading } = useContests()
 
   if (isLoading) return <div>Loading contests...</div>
   // if (error) return <div>Error loading contests</div> // Handle error gracefully or use boundary
