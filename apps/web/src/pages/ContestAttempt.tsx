@@ -12,7 +12,6 @@ import Editor, { loader } from "@monaco-editor/react"; // Imported Monaco Editor
 loader.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/min/vs' } });
 
 import {
-  Clock,
   CheckCircle2,
   Check,
   X,
@@ -46,12 +45,13 @@ export function ContestAttemptPage() {
   });
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
-  const [currentScore, setCurrentScore] = useState(0);
+  const [_, setCurrentScore] = useState(0);
   const [selectedLanguage, setSelectedLanguage] = useState(63); // JavaScript default
   const [runResult, setRunResult] = useState<RunCodeResult | null>(null);
   const [isRunning, setIsRunning] = useState(false);
 
 
+  const [codeCache, setCodeCache] = useState<Record<string, Record<number, string>>>({});
 
   // Load saved answers from backend or local storage on mount
   useEffect(() => {
@@ -59,10 +59,16 @@ export function ContestAttemptPage() {
       // Normalize answers: extract 'value' if it's an object (from DSA submission)
       const rawAnswers = contestData.submission.answers as Record<string, any>;
       const normalizedAnswers: Record<string, string> = {};
+      const initialCache: Record<string, Record<number, string>> = {};
 
       Object.entries(rawAnswers).forEach(([qId, val]) => {
         if (val && typeof val === 'object' && val.value !== undefined) {
           normalizedAnswers[qId] = val.value;
+
+          // Populate cache with saved execution
+          if (val.languageId) {
+            initialCache[qId] = { [val.languageId]: val.value };
+          }
         } else if (typeof val === 'string') {
           normalizedAnswers[qId] = val;
         } else {
@@ -71,6 +77,7 @@ export function ContestAttemptPage() {
       });
 
       setAnswers(normalizedAnswers);
+      setCodeCache(prev => ({ ...prev, ...initialCache }));
 
       // Initialize score from backend
       if (contestData.submission.score !== undefined) {
@@ -227,8 +234,32 @@ export function ContestAttemptPage() {
 
   const handleCodeChange = (questionId: string, code: string | undefined) => {
     if (code === undefined) return;
-    const newAnswers = { ...answers, [questionId]: code };
-    setAnswers(newAnswers);
+
+    // Update active answer state
+    setAnswers(prev => ({ ...prev, [questionId]: code }));
+
+    // Update code cache for the specific language
+    setCodeCache(prev => ({
+      ...prev,
+      [questionId]: {
+        ...(prev[questionId] || {}),
+        [selectedLanguage]: code
+      }
+    }));
+  };
+
+  const handleLanguageSwitch = (newLangId: number) => {
+    const questionId = currentQuestion?.id;
+    if (!questionId) {
+      setSelectedLanguage(newLangId);
+      return;
+    }
+
+    // Retrieve cached code for the new language, or simplify to default
+    const cachedCode = codeCache[questionId]?.[newLangId] || "// Write your code here";
+
+    setSelectedLanguage(newLangId);
+    setAnswers(prev => ({ ...prev, [questionId]: cachedCode }));
   };
 
   const runCode = useRunCode();
@@ -345,8 +376,6 @@ export function ContestAttemptPage() {
   const currentQuestion = contestData.questions?.[currentQuestionIndex]?.question;
   const totalQuestions = contestData.questions?.length;
   const optionLabels = ['A', 'B', 'C', 'D', 'E', 'F'];
-
-  const rank = contestData.submission?.rank ?? "N/A";
 
   const isDSA = currentQuestion?.type === "DSA"; // Assuming implicit type check or field availability
   // Sometimes naming is 'MCQ' or 'DSA' in DB. Let's assume 'DSA' or Check if options exist?
@@ -493,16 +522,19 @@ export function ContestAttemptPage() {
                   <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Language Selection</label>
                   <select
                     value={selectedLanguage}
-                    onChange={(e) => setSelectedLanguage(Number(e.target.value))}
+                    onChange={(e) => handleLanguageSwitch(Number(e.target.value))}
                     className="h-9 rounded-md border border-foreground/20 bg-background px-3 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
                   >
                     <option value={63}>JavaScript (Node.js)</option>
                     <option value={71}>Python (3.8)</option>
                     <option value={62}>Java (OpenJDK 13)</option>
                     <option value={54}>C++ (GCC 9.2)</option>
-                    <option value={74}>TypeScript (3.7)</option>
+                    {/* Backend currently hardcoded to JS/Python test drivers. 
+                        Other languages below need implementation in Judge0Manager 
+                        before uncommenting. */}
+                    {/* <option value={74}>TypeScript (3.7)</option>
                     <option value={60}>Go (1.13)</option>
-                    <option value={73}>Rust (1.40)</option>
+                    <option value={73}>Rust (1.40)</option> */}
                   </select>
                 </div>
 

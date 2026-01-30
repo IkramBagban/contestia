@@ -54,7 +54,6 @@ export const ContestResultPage = () => {
     }
 
     const submission = contestData.submission;
-    const totalQuestions = contestData.questions.length;
     const totalPoints = contestData.questions.reduce((acc: number, q: any) => acc + (q.question.points || 10), 0);
     const userScore = submission?.score || 0;
 
@@ -71,8 +70,6 @@ export const ContestResultPage = () => {
         }
         return acc;
     }, { correct: 0, incorrect: 0, unattempted: 0 });
-
-    const accuracy = totalQuestions > 0 ? Math.round((stats.correct / totalQuestions) * 100) : 0;
 
     return (
         <div className="min-h-screen bg-background text-foreground transition-all duration-300 selection:bg-primary selection:text-white">

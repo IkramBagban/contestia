@@ -11,6 +11,7 @@ import { CreateQuestion } from './pages/questions/create'
 
 import { QuestionsList } from './pages/questions/list'
 import { Toaster } from 'sonner'
+import { NotFound } from './pages/not-found'
 
 function App() {
   return (
@@ -32,7 +33,9 @@ function App() {
           <Route path="questions" element={<QuestionsList />} />
           <Route path="questions/new" element={<CreateQuestion />} />
           <Route path="questions/edit/:id" element={<CreateQuestion />} />
+          <Route path="questions/edit/:id" element={<CreateQuestion />} />
         </Route>
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   )
