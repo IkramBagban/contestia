@@ -8,6 +8,8 @@ COPY package.json bun.lock turbo.json ./
 COPY apps/backend/package.json ./apps/backend/package.json
 COPY packages ./packages
 
+WORKDIR /app/apps/backend
+
 RUN bun install --frozen-lockfile
 
 COPY apps/backend ./apps/backend
