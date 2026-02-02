@@ -3,6 +3,10 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'apps/admin/**'
+      - 'packages/ui/**'
+      - '.github/workflows/admin.yaml'
 
 jobs:
   build:
@@ -21,7 +25,7 @@ jobs:
         run: bun install
 
       - name: Build the React app
-        run: bun run build
+        run: cd apps/admin && bun run build
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
           VITE_WS_URL: ${{ secrets.VITE_WS_URL }}
