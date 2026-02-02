@@ -63,7 +63,7 @@ const websocketHandler = (ws: WebSocket) => {
                 select: { id: true, email: true }
             });
 
-            const userMap = users.reduce((acc, user) => {
+            const userMap = users.reduce((acc: Record<string, string>, user: { id: string; email: string }) => {
                 acc[user.id] = user.email;
                 return acc;
             }, {} as Record<string, string>);

@@ -77,7 +77,7 @@ export const getQuestionById = async (
   next: NextFunction
 ) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const question = await prismaClient.question.findUnique({
       where: { id },
       include: { options: true, testCases: true },
@@ -105,7 +105,7 @@ export const updateQuestion = async (
   next: NextFunction
 ) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const schemaResult = createQuestionSchema.safeParse(req.body);
 
     if (!schemaResult.success) {
@@ -122,7 +122,7 @@ export const updateQuestion = async (
     let question;
     if (type === "MCQ") {
       await prismaClient.option.deleteMany({
-        where: { questionId: id }
+        where: { questionId: id as string }
       });
 
       const sanitizedOptions = options?.map((opt) => ({
@@ -144,7 +144,7 @@ export const updateQuestion = async (
       });
     } else {
       await prismaClient.testcase.deleteMany({
-        where: { questionId: id }
+        where: { questionId: id as string }
       });
 
       const sanitizedTestCases = testCases?.map((tc) => ({

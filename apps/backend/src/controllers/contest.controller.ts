@@ -41,7 +41,7 @@ export const getContests = async (
 
     const contestsIsWithPoints = contests.map((contest) => {
       const totalPoints = contest.questions.reduce(
-        (acc, q) => acc + (q.question.points || 0),
+        (acc: number, q: { question: { points: number | null } }) => acc + (q.question.points || 0),
         0
       );
       // Remove questions array from list response to keep it light if needed, or keep it.
@@ -120,7 +120,7 @@ export const getContestById = async (
   next: NextFunction
 ) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const contest = await prismaClient.contest.findUnique({
       where: { id },
       include: {
@@ -140,7 +140,7 @@ export const getContestById = async (
     }
 
     const totalPoints = contest.questions.reduce(
-      (acc, q) => acc + (q.question.points || 0),
+      (acc: number, q: { question: { points: number | null } }) => acc + (q.question.points || 0),
       0
     );
 
@@ -159,7 +159,7 @@ export const updateContest = async (
   next: NextFunction
 ) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const schemaResult = createContestSchema.safeParse(req.body);
 
     if (!schemaResult.success) {
@@ -227,7 +227,7 @@ export const registerContest = async (
   next: NextFunction
 ) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const userId = req.user!.id;
 
     if (!id) {
@@ -276,7 +276,7 @@ export const startContest = async (
   next: NextFunction
 ) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const userId = req.user!.id;
 
     if (!id) {
@@ -392,7 +392,7 @@ export const submitContest = async (
   next: NextFunction
 ) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const userId = req.user!.id;
     const { answers } = req.body;
 
@@ -434,7 +434,7 @@ export const submitContest = async (
 
       if (q.type === "MCQ") {
         const selectedOptionId = answers[q.id];
-        const correctOption = q.options.find((o) => o.isCorrect);
+        const correctOption = q.options.find((o: { id: string; isCorrect: boolean }) => o.isCorrect);
         const isCorrect = !!(selectedOptionId && correctOption && correctOption.id === selectedOptionId);
 
         if (selectedOptionId) {
@@ -491,7 +491,7 @@ export const getContestForAttempt = async (
   next: NextFunction
 ) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const userId = req.user!.id;
     if (!id) {
       throw Object.assign(new Error("Contest id is required"), { status: 400 });
@@ -563,7 +563,7 @@ export const saveProgress = async (
   next: NextFunction
 ) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const userId = req.user!.id;
     const { questionId, answer } = req.body;
 
@@ -603,7 +603,7 @@ export const saveProgress = async (
 
     if (!contest) throw Object.assign(new Error("Contest not found"), { status: 404 });
 
-    const questionData = contest.questions.find(q => q.questionId === questionId)?.question;
+    const questionData = contest.questions.find((q: { questionId: string }) => q.questionId === questionId)?.question;
     if (!questionData) throw Object.assign(new Error("Question not found"), { status: 404 });
 
     let points = 0;
@@ -613,7 +613,7 @@ export const saveProgress = async (
     const existingEntry = currentAnswersMap[questionId];
 
     if (questionData.type === "MCQ") {
-      const correctOption = questionData.options.find(o => o.isCorrect);
+      const correctOption = questionData.options.find((o: { id: string; isCorrect: boolean }) => o.isCorrect);
       if (correctOption && correctOption.id === answer) {
         points = questionData.points;
         isCorrect = true;
@@ -693,7 +693,7 @@ export const getContestParticipants = async (
   next: NextFunction
 ) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { page = 1, limit = 50 } = req.query;
     const p = Math.max(Number(page) || 1, 1);
     const l = Math.min(Number(limit) || 50, 100);
