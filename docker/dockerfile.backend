@@ -6,13 +6,13 @@ FROM base AS builder
 COPY package.json turbo.json ./
 
 COPY apps/backend/package.json ./apps/backend/package.json
-COPY packages ./packages
+COPY packages/*/package.json ./packages/
 
-WORKDIR /app/apps/backend
 
 RUN bun install
 
 COPY apps/backend ./apps/backend
+COPY packages ./packages
 
 WORKDIR /app/packages/db
 RUN bunx prisma generate
@@ -27,11 +27,10 @@ ENV NODE_ENV=production
 WORKDIR /app
 
 COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/bun.lock ./bun.lock
 COPY --from=builder /app/apps/backend/package.json ./apps/backend/package.json
 COPY --from=builder /app/packages/db/package.json ./packages/db/package.json
 
-RUN bun install --production
+RUN bun install
 
 COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
 COPY --from=builder /app/packages/db ./packages/db
