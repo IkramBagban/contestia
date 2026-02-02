@@ -1,0 +1,44 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Build Docker image
+      run: docker build -t ${{ secrets.DOCKER_USERNAME }}/contestia-backend:${{ github.sha }} .
+
+    - name: Push Docker image to Docker Hub
+      run: docker push ${{ secrets.DOCKER_USERNAME }}/contestia-backend:${{ github.sha }}
+
+    - name: SSH Into machine and run backend
+      uses: appleboy/ssh-action@v1
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_KEY }}
+        script: |
+          whoami
+          docker rm -f contestia-backend || true
+          docker pull ${{ secrets.DOCKER_USERNAME }}/contestia-backend:${{ github.sha }}
+          docker run \
+          -e DATABASE_URL=${{ secrets.DATABASE_URL }} \
+          -e REDIS_URL=${{ secrets.REDIS_URL }} \
+          -p 5000:5000 \
+          --restart unless-stopped \
+          --name=contestia-backend \
+          -d ${{ secrets.DOCKER_USERNAME }}/contestia-backend:${{ github.sha }} 

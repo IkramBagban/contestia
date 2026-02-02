@@ -7,13 +7,12 @@ import cors from "cors";
 import authRouter from "./routes/auth.route";
 import contestRouter from "./routes/contest.route";
 import questionRouter from "./routes/question.route";
-import simulationRouter from "./routes/simulation.route";
 import judge0Router from "./routes/judge0.route";
 import cookieParser from "cookie-parser";
 import { createServer } from 'http'
 import { WebSocketServer } from "ws";
 import websocketHandler from "./services/ws";
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 const app = express();
 
 const server = createServer(app)
@@ -24,7 +23,7 @@ wss.on("connection", websocketHandler)
 app.use(express.json());
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://localhost:5174"],
+    origin: process.env.ORIGIN_URLS?.split(",") || ["http://localhost:5173", "http://localhost:5174", "https://contestia.ibmeet.xyz", "https://admin.contestia.ibmeet.xyz"],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -35,7 +34,6 @@ app.use(cookieParser());
 app.use("/auth", authRouter);
 app.use("/contests", contestRouter);
 app.use("/questions", questionRouter);
-app.use("/simulation", simulationRouter);
 app.use("/judge0", judge0Router);
 
 app.get("/", (req, res) => {
