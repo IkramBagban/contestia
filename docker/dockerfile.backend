@@ -3,14 +3,14 @@ WORKDIR /app
 
 FROM base AS builder
 
-COPY package.json bun.lock turbo.json ./
+COPY package.json turbo.json ./
 
 COPY apps/backend/package.json ./apps/backend/package.json
 COPY packages ./packages
 
 WORKDIR /app/apps/backend
 
-RUN bun install --frozen-lockfile
+RUN bun install
 
 COPY apps/backend ./apps/backend
 
@@ -31,7 +31,7 @@ COPY --from=builder /app/bun.lock ./bun.lock
 COPY --from=builder /app/apps/backend/package.json ./apps/backend/package.json
 COPY --from=builder /app/packages/db/package.json ./packages/db/package.json
 
-RUN bun install --production --frozen-lockfile
+RUN bun install --production
 
 COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
 COPY --from=builder /app/packages/db ./packages/db
