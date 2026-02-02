@@ -30,6 +30,7 @@ COPY --from=builder /app/bun.lock ./bun.lock
 COPY --from=builder /app/apps/backend/package.json ./apps/backend/package.json
 COPY --from=builder /app/packages/db/package.json ./packages/db/package.json
 
+ENV BUN_INSTALL_FROZEN_LOCKFILE=false
 RUN bun install --production
 
 COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
