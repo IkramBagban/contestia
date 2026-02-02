@@ -5,6 +5,7 @@ FROM base AS builder
 
 COPY package.json bun.lock turbo.json ./
 
+# Copy all workspace package.json files - required for monorepo lockfile validation
 COPY apps/backend/package.json ./apps/backend/package.json
 COPY apps/web/package.json ./apps/web/package.json
 COPY apps/admin/package.json ./apps/admin/package.json
