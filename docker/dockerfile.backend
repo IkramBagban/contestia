@@ -35,8 +35,8 @@ RUN bun install --production --frozen-lockfile
 COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
 COPY --from=builder /app/packages/db ./packages/db
 
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+WORKDIR /app/packages/db
+RUN bunx prisma generate
 
 WORKDIR /app/apps/backend
 
