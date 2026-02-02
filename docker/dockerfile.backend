@@ -6,13 +6,12 @@ FROM base AS builder
 COPY package.json turbo.json ./
 
 COPY apps/backend/package.json ./apps/backend/package.json
-COPY packages/*/package.json ./packages/
+COPY packages ./packages/
 
 
 RUN bun install
 
 COPY apps/backend ./apps/backend
-COPY packages ./packages
 
 WORKDIR /app/packages/db
 RUN bunx prisma generate
