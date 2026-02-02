@@ -16,7 +16,7 @@ export interface LeaderboardEntry {
     score: number;
 }
 
-const WS_URL = 'ws://localhost:3000'; // Environment variable in real app
+const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:5000';
 
 export function useLeaderboard(contestId: string, enabled: boolean = true) {
     const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
