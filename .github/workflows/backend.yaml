@@ -22,8 +22,13 @@ jobs:
     - name: Build Docker image
       run: docker build -t ${{ secrets.DOCKER_USERNAME }}/contestia-backend:${{ github.sha }} .
 
-    - name: Push Docker image to Docker Hub
-      run: docker push ${{ secrets.DOCKER_USERNAME }}/contestia-backend:${{ github.sha }}
+      - name: Build and push Docker image to DockerHub
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./docker/dockerfile.backend
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/contestia-backend:${{ github.sha }}
 
     - name: SSH Into machine and run backend
       uses: appleboy/ssh-action@v1
