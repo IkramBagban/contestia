@@ -2,7 +2,7 @@ name: Deploy Admin
 on:
   push:
     branches:
-      - main
+      - prod
     paths:
       - 'apps/admin/**'
       - 'packages/ui/**'
