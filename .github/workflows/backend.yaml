@@ -42,11 +42,11 @@ jobs:
           whoami
           docker rm -f contestia-backend || true
           docker pull ${{ secrets.DOCKER_USERNAME }}/contestia-backend:${{ github.sha }}
-          docker run \
-            -e DATABASE_URL=${{ secrets.DATABASE_URL }} \
-            -e REDIS_URL=${{ secrets.REDIS_URL }} \
-            -e ORIGIN_URLS=${{ secrets.ORIGIN_URLS }} \
-            -p 5000:5000 \
-            --restart unless-stopped \
-            --name=contestia-backend \
-            -d ${{ secrets.DOCKER_USERNAME }}/contestia-backend:${{ github.sha }} 
+          docker run -d \
+          --name contestia-backend \
+          --restart unless-stopped \
+          -p 5000:5000 \
+          -e DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+          -e REDIS_URL="${{ secrets.REDIS_URL }}" \
+          -e ORIGIN_URLS="${{ secrets.ORIGIN_URLS }}" \
+          ${{ secrets.DOCKER_USERNAME }}/contestia-backend:${{ github.sha }}
