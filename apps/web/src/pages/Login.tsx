@@ -49,17 +49,16 @@ export function LoginPage() {
 
       <div className="w-full max-w-md space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 relative z-10">
         <div className="text-center space-y-3">
-          <div className="flex justify-center mb-6">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-foreground bg-primary shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
-              <Trophy className="h-6 w-6 text-primary-foreground" />
+          <div className="text-center space-y-2">
+            <div className="flex justify-center items-center gap-x-4 mb-2">
+
+              <img src="image.png" alt="Contestia Logo" className="w-12 h-12" />
+              {/* <h1 className="text-3xl font-black tracking-tight text-foreground uppercase">
+              Contestia
+            </h1> */}
             </div>
+            <p className="text-muted-foreground font-medium uppercase tracking-widest text-[10px]">The Ultimate Coding Arena</p>
           </div>
-          <h1 className="text-3xl font-black tracking-tight text-foreground uppercase">
-            Contestia
-          </h1>
-          <p className="text-muted-foreground font-medium uppercase tracking-widest text-[10px]">
-            The Ultimate Coding Arena
-          </p>
         </div>
 
         <Card className="rounded-3xl border border-foreground bg-card shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.05)] overflow-hidden">
@@ -69,7 +68,7 @@ export function LoginPage() {
               Enter your credentials to continue
             </CardDescription>
           </CardHeader>
-          <CardContent className="pt-8">
+          <CardContent className="pt-3">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Email Address</Label>

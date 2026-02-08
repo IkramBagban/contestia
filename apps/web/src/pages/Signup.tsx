@@ -48,16 +48,15 @@ export function SignupPage() {
         <ArrowLeft className="mr-2 h-4 w-4" /> Back to Home
       </Button>
 
-      <div className="w-full max-w-md space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 relative z-10">
-        <div className="text-center space-y-3">
-          <div className="flex justify-center mb-6">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-foreground bg-primary shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
-              <Trophy className="h-6 w-6 text-primary-foreground" />
-            </div>
+      <div className="w-full max-w-md space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500 relative z-10">
+        <div className="text-center space-y-2">
+          <div className="flex justify-center items-center gap-x-4 mb-2">
+
+            <img src="image.png" alt="Contestia Logo" className="w-12 h-12" />
+            {/* <h1 className="text-3xl font-black tracking-tight text-foreground uppercase">
+              Contestia
+            </h1> */}
           </div>
-          <h1 className="text-3xl font-black tracking-tight text-foreground uppercase">
-            Contestia
-          </h1>
           <p className="text-muted-foreground font-medium uppercase tracking-widest text-[10px]">Create Your Account</p>
         </div>
 
@@ -68,7 +67,7 @@ export function SignupPage() {
               Enter your details below to get started
             </CardDescription>
           </CardHeader>
-          <CardContent className="pt-8">
+          <CardContent className="pt-3">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="name" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Full Name</Label>

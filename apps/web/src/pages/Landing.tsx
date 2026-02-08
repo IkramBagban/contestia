@@ -23,9 +23,7 @@ export function LandingPage() {
             <header className="fixed top-0 z-50 w-full border-b border-foreground/5 bg-background/80 backdrop-blur-xl">
                 <div className="container mx-auto flex h-20 max-w-7xl items-center justify-between px-6">
                     <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl border-2 border-foreground bg-primary shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                            <Terminal className="h-6 w-6 text-primary-foreground" />
-                        </div>
+                        <img src="image.png" alt="Contestia Logo" className="w-12 h-12" />
                         <span className="font-display text-2xl font-black tracking-tighter uppercase italic">Contestia</span>
                     </div>
 
