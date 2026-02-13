@@ -4,6 +4,29 @@ import { createContestSchema } from "../../utils/zodSchema";
 import type { ExtendedRequest } from "../../utils/types";
 import { redisManager } from "../services/redis";
 
+const ensureContestOwner = async (contestId: string, userId?: string) => {
+  const contest = await prismaClient.contest.findUnique({
+    where: { id: contestId },
+    select: { id: true, userId: true },
+  });
+
+  if (!contest) {
+    const error = new Error("Contest not found");
+    // @ts-ignore
+    error.status = 404;
+    throw error;
+  }
+
+  if (!userId || contest.userId !== userId) {
+    const error = new Error("You are not allowed to access this contest");
+    // @ts-ignore
+    error.status = 403;
+    throw error;
+  }
+
+  return contest;
+};
+
 export const getContests = async (
   req: Request,
   res: Response,
@@ -54,6 +77,61 @@ export const getContests = async (
       success: true,
       message: "Contests fetched successfully",
       data: contestsIsWithPoints,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getAdminContests = async (
+  req: ExtendedRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const p = Math.max(Number(page) || 1, 1);
+    const l = Math.min(Number(limit) || 10, 100);
+
+    const contests = await prismaClient.contest.findMany({
+      where: { userId: req.user!.id },
+      skip: (p - 1) * l,
+      take: l,
+      orderBy: {
+        startDate: 'desc',
+      },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        startDate: true,
+        startTime: true,
+        endTime: true,
+        questions: {
+          select: {
+            question: {
+              select: {
+                points: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const contestsWithPoints = contests.map((contest) => {
+      const totalPoints = contest.questions.reduce(
+        (acc: number, q: { question: { points: number | null } }) => acc + (q.question.points || 0),
+        0
+      );
+      const { questions, ...rest } = contest;
+      return { ...rest, totalPoints };
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Contests fetched successfully",
+      data: contestsWithPoints,
     });
   } catch (error) {
     next(error);
@@ -115,7 +193,7 @@ export const createContest = async (
 };
 
 export const getContestById = async (
-  req: Request,
+  req: ExtendedRequest,
   res: Response,
   next: NextFunction
 ) => {
@@ -133,10 +211,11 @@ export const getContestById = async (
     });
 
     if (!contest) {
-      const error = new Error("Contest not found");
-      // @ts-ignore
-      error.status = 404;
-      throw error;
+      throw Object.assign(new Error("Contest not found"), { status: 404 });
+    }
+
+    if (contest.userId !== req.user?.id) {
+      throw Object.assign(new Error("You are not allowed to access this contest"), { status: 403 });
     }
 
     const totalPoints = contest.questions.reduce(
@@ -154,12 +233,13 @@ export const getContestById = async (
 };
 
 export const updateContest = async (
-  req: Request,
+  req: ExtendedRequest,
   res: Response,
   next: NextFunction
 ) => {
   try {
     const id = req.params.id as string;
+    await ensureContestOwner(id, req.user?.id);
     const schemaResult = createContestSchema.safeParse(req.body);
 
     if (!schemaResult.success) {
@@ -688,12 +768,13 @@ export const saveProgress = async (
 
 
 export const getContestParticipants = async (
-  req: Request,
+  req: ExtendedRequest,
   res: Response,
   next: NextFunction
 ) => {
   try {
     const id = req.params.id as string;
+    await ensureContestOwner(id, req.user?.id);
     const { page = 1, limit = 50 } = req.query;
     const p = Math.max(Number(page) || 1, 1);
     const l = Math.min(Number(limit) || 50, 100);

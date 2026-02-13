@@ -100,12 +100,31 @@ export const getQuestionById = async (
 };
 
 export const updateQuestion = async (
-  req: Request,
+  req: ExtendedRequest,
   res: Response,
   next: NextFunction
 ) => {
   try {
     const id = req.params.id as string;
+    const questionOwner = await prismaClient.question.findUnique({
+      where: { id },
+      select: { userId: true },
+    });
+
+    if (!questionOwner) {
+      const error = new Error("Question not found");
+      // @ts-ignore
+      error.status = 404;
+      throw error;
+    }
+
+    if (questionOwner.userId !== req.user?.id) {
+      const error = new Error("You are not allowed to edit this question");
+      // @ts-ignore
+      error.status = 403;
+      throw error;
+    }
+
     const schemaResult = createQuestionSchema.safeParse(req.body);
 
     if (!schemaResult.success) {

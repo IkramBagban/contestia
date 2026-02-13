@@ -1,10 +1,11 @@
 import { Router } from "express";
-import { createContest, getContests, getContestById, updateContest, startContest, submitContest, getContestForAttempt, saveProgress, registerContest, getContestParticipants } from "../controllers/contest.controller";
+import { createContest, getContests, getAdminContests, getContestById, updateContest, startContest, submitContest, getContestForAttempt, saveProgress, registerContest, getContestParticipants } from "../controllers/contest.controller";
 import { auth } from "../middleware/auth.middleware";
 
 const router = Router();
 
 router.get("/", getContests);
+router.get("/admin", auth, getAdminContests);
 router.post("/create", auth, createContest);
 router.get("/:id", auth, getContestById);
 router.get("/:id/attempt", auth, getContestForAttempt);

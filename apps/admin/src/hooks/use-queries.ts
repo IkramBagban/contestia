@@ -143,7 +143,7 @@ export function useContests() {
   return useQuery({
     queryKey: ['contests'],
     queryFn: async () => {
-      const { data } = await api.get<{ success: boolean; data: Contest[] }>('/contests');
+      const { data } = await api.get<{ success: boolean; data: Contest[] }>('/contests/admin');
       return data.data;
     },
   });

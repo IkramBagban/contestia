@@ -238,9 +238,148 @@ if __name__ == "__main__":
       case 54: // C++ (GCC 9.2.0)
         return this.generateCppHarness(code, funcName, testCases);
 
+      case 62: // Java (OpenJDK 13.0.1)
+        return this.generateJavaHarness(code, funcName, testCases);
+
       default:
         return null;
     }
+  }
+
+  private generateJavaHarness(
+    code: string,
+    funcName: string,
+    testCases: any[],
+  ): string {
+    if (!testCases || testCases.length === 0) return code;
+
+    // Helper to infer types
+    const getJavaType = (val: any): string => {
+      if (Array.isArray(val)) {
+        if (val.length === 0) return "ArrayList<Integer>";
+        return `ArrayList<${getJavaBoxedType(val[0])}>`;
+      }
+      if (typeof val === "number") {
+        return Number.isInteger(val) ? "int" : "double";
+      }
+      if (typeof val === "boolean") return "boolean";
+      return "String";
+    };
+
+    const getJavaBoxedType = (val: any): string => {
+      if (typeof val === "number") return Number.isInteger(val) ? "Integer" : "Double";
+      if (typeof val === "boolean") return "Boolean";
+      if (typeof val === "string") return "String";
+      return "Object";
+    };
+
+    const formatJavaValue = (val: any): string => {
+      if (Array.isArray(val)) {
+        const elems = val.map((v: any) => formatJavaValue(v)).join(", ");
+        return `new ArrayList<>(java.util.Arrays.asList(${elems}))`;
+      }
+      if (typeof val === "string") return `"${val}"`;
+      if (typeof val === "boolean") return val ? "true" : "false";
+      return String(val);
+    };
+
+    const firstCase = testCases[0];
+
+    // We assume the user provides a "Solution" class or similar.
+    // We will wrap everything in a Main class.
+
+    let harness = `
+import java.util.*;
+import java.util.stream.*;
+
+${code}
+
+public class Main {
+    public static void main(String[] args) {
+        int totalPassed = 0;
+        int totalFailed = 0;
+        
+        System.out.print("{ \\"results\\": [");
+
+        ${code.includes("class Solution") ? "Solution sol = new Solution();" : "Object sol = null; // Error: No Solution class found"} 
+        // We will act even if sol is null to produce error in try catch if needed, but better to instantiate.
+        // Simple check for class Solution:
+        
+`;
+    // Actually we can't do dynamic instantiation easily without reflection complexity or assumption.
+    // Let's assume Solution exists.
+    harness = `
+import java.util.*;
+import java.util.stream.*;
+
+${code}
+
+public class Main {
+    public static void main(String[] args) {
+        int totalPassed = 0;
+        int totalFailed = 0;
+        
+        System.out.print("{ \\"results\\": [");
+        
+        try {
+           Solution sol = new Solution();
+
+`;
+
+    testCases.forEach((tc, idx) => {
+      const inputArgs = (tc.input as any[])
+        .map((arg: any) => formatJavaValue(arg))
+        .join(", ");
+
+      const expectedVal = formatJavaValue(tc.expectedOutput);
+
+      const inputJson = JSON.stringify(tc.input).replace(/"/g, '\\"');
+      const expectedJson = JSON.stringify(tc.expectedOutput).replace(/"/g, '\\"');
+
+      // We need a helper for JSON serialization inside Java because standard lib doesn't have one (well, not easily accessible one-liner)
+      // I'll inject a helper method at the bottom of Main
+
+      harness += `
+           try {
+               Object result = sol.${funcName}(${inputArgs});
+               Object expected = ${expectedVal};
+               
+               boolean passed = String.valueOf(result).equals(String.valueOf(expected));
+               // Better equality check? Objects.equals
+               if (result instanceof List && expected instanceof List) {
+                   passed = result.equals(expected);
+               } else {
+                   passed = java.util.Objects.equals(result, expected);
+               }
+
+               if (passed) totalPassed++; else totalFailed++;
+               
+               if (${idx} > 0) System.out.print(",");
+               System.out.print("{ \\"testCaseId\\": \\"${tc.id}\\", ");
+               System.out.print("\\"input\\": \\"${inputJson}\\", ");
+               System.out.print("\\"expectedOutput\\": \\"${expectedJson}\\", ");
+               System.out.print("\\"actualOutput\\": \\"" + String.valueOf(result) + "\\", ");
+               System.out.print("\\"passed\\": " + (passed ? "true" : "false") + " }");
+           } catch (Exception e) {
+               totalFailed++;
+               if (${idx} > 0) System.out.print(",");
+               System.out.print("{ \\"testCaseId\\": \\"${tc.id}\\", \\"error\\": \\"" + e.toString().replace(/"/g, "'") + "\\", \\"passed\\": false }");
+           }
+`;
+    });
+
+    harness += `
+        } catch (Exception e) {
+             System.out.print("], \\"error\\": \\"Outer Error: " + e.toString() + "\\", \\"totalPassed\\": 0, \\"totalFailed\\": 0 }");
+             return;
+        }
+
+        System.out.print("], \\"totalPassed\\": " + totalPassed + ", \\"totalFailed\\": " + totalFailed + " }");
+    }
+}
+`;
+
+    return harness;
   }
 
   private generateCppHarness(
