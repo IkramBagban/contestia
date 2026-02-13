@@ -26,7 +26,7 @@ export const getQuestions = async (
     const l = Math.min(Number(limit) || 20, 100); // Default to 20, max 100
 
 
-    const where: any = {};
+    const where: any = { isDeleted: false };
     if (type) where.type = type;
 
     // If contestId is provided, we need to filter questions associated with that contest
@@ -49,7 +49,8 @@ export const getQuestions = async (
           text: true,
           type: true,
           points: true,
-          createdAt: true
+          createdAt: true,
+          userId: true
         },
       }),
       prismaClient.question.count({ where })
@@ -100,12 +101,31 @@ export const getQuestionById = async (
 };
 
 export const updateQuestion = async (
-  req: Request,
+  req: ExtendedRequest,
   res: Response,
   next: NextFunction
 ) => {
   try {
     const id = req.params.id as string;
+
+    const existingQuestion = await prismaClient.question.findUnique({
+      where: { id },
+    });
+
+    if (!existingQuestion) {
+      const error = new Error("Question not found");
+      // @ts-ignore
+      error.status = 404;
+      throw error;
+    }
+
+    if (existingQuestion.userId !== req.user?.id) {
+      const error = new Error("You are not allowed to edit this question");
+      // @ts-ignore
+      error.status = 403;
+      throw error;
+    }
+
     const schemaResult = createQuestionSchema.safeParse(req.body);
 
     if (!schemaResult.success) {
@@ -253,5 +273,46 @@ export const createQuestion = async (
     });
   } catch (error) {
     next(error); // this will catch in global error handler middleware
+  }
+};
+
+export const deleteQuestion = async (
+  req: ExtendedRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const id = req.params.id as string;
+
+    const existingQuestion = await prismaClient.question.findUnique({
+      where: { id },
+    });
+
+    if (!existingQuestion) {
+      const error = new Error("Question not found");
+      // @ts-ignore
+      error.status = 404;
+      throw error;
+    }
+
+    if (existingQuestion.userId !== req.user?.id) {
+      const error = new Error("You are not allowed to delete this question");
+      // @ts-ignore
+      error.status = 403;
+      throw error;
+    }
+
+    // SOFT DELETE: Just flip the flag
+    await prismaClient.question.update({
+      where: { id },
+      data: { isDeleted: true }
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Question moved to trash successfully",
+    });
+  } catch (error) {
+    next(error);
   }
 };

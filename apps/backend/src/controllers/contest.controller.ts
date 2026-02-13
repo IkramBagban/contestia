@@ -27,6 +27,7 @@ export const getContests = async (
         startDate: true,
         startTime: true,
         endTime: true,
+        userId: true,
         questions: {
           select: {
             question: {
@@ -115,7 +116,7 @@ export const createContest = async (
 };
 
 export const getContestById = async (
-  req: Request,
+  req: ExtendedRequest,
   res: Response,
   next: NextFunction
 ) => {
@@ -139,6 +140,14 @@ export const getContestById = async (
       throw error;
     }
 
+    // Ownership check: If the requester is an admin (authenticated), they can only see their own contest details
+    // For students, they should be using getContestForAttempt which has its own logic.
+    // However, since we don't have separate roles (admin/student) in the User model currently,
+    // we assume anyone hitting this authenticated is an admin.
+    if (req.user && contest.userId !== req.user.id) {
+        throw Object.assign(new Error("Unauthorized access to contest details"), { status: 403 });
+    }
+
     const totalPoints = contest.questions.reduce(
       (acc: number, q: { question: { points: number | null } }) => acc + (q.question.points || 0),
       0
@@ -154,12 +163,25 @@ export const getContestById = async (
 };
 
 export const updateContest = async (
-  req: Request,
+  req: ExtendedRequest,
   res: Response,
   next: NextFunction
 ) => {
   try {
     const id = req.params.id as string;
+
+    const existingContest = await prismaClient.contest.findUnique({
+      where: { id },
+    });
+
+    if (!existingContest) {
+      throw Object.assign(new Error("Contest not found"), { status: 404 });
+    }
+
+    if (existingContest.userId !== req.user?.id) {
+      throw Object.assign(new Error("You are not allowed to edit this contest"), { status: 403 });
+    }
+
     const schemaResult = createContestSchema.safeParse(req.body);
 
     if (!schemaResult.success) {
@@ -688,12 +710,26 @@ export const saveProgress = async (
 
 
 export const getContestParticipants = async (
-  req: Request,
+  req: ExtendedRequest,
   res: Response,
   next: NextFunction
 ) => {
   try {
     const id = req.params.id as string;
+
+    const contest = await prismaClient.contest.findUnique({
+      where: { id },
+      select: { userId: true }
+    });
+
+    if (!contest) {
+      throw Object.assign(new Error("Contest not found"), { status: 404 });
+    }
+
+    if (contest.userId !== req.user?.id) {
+      throw Object.assign(new Error("You are not allowed to view participants for this contest"), { status: 403 });
+    }
+
     const { page = 1, limit = 50 } = req.query;
     const p = Math.max(Number(page) || 1, 1);
     const l = Math.min(Number(limit) || 50, 100);
@@ -716,6 +752,55 @@ export const getContestParticipants = async (
     res.status(200).json({
       success: true,
       data: participants,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteContest = async (
+  req: ExtendedRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const id = req.params.id as string;
+
+    const existingContest = await prismaClient.contest.findUnique({
+      where: { id },
+    });
+
+    if (!existingContest) {
+      throw Object.assign(new Error("Contest not found"), { status: 404 });
+    }
+
+    if (existingContest.userId !== req.user?.id) {
+      throw Object.assign(new Error("You are not allowed to delete this contest"), { status: 403 });
+    }
+
+    // Delete relations first
+    await prismaClient.questionsInContests.deleteMany({
+      where: { contestId: id },
+    });
+
+    await prismaClient.participant.deleteMany({
+      where: { contestId: id },
+    });
+
+    await prismaClient.submission.deleteMany({
+      where: { contestId: id },
+    });
+
+    await prismaClient.contest.delete({
+      where: { id },
+    });
+
+    // Also cleanup leaderboard from redis if exists
+    await redisManager.redis.del(`contest:${id}:leaderboard`);
+
+    res.status(200).json({
+      success: true,
+      message: "Contest deleted successfully",
     });
   } catch (error) {
     next(error);

@@ -60,6 +60,8 @@ model Question {
   points Int
   userId String
 
+  isDeleted Boolean @default(false)
+
   options   Option[] // in case of mcq
   testCases Testcase[] // in case of dsa
   funcName  String // func name should be same when user submitting the code

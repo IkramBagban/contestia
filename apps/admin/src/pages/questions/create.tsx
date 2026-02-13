@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
-import { useCreateQuestion, useQuestion, useUpdateQuestion } from "@/hooks/use-queries"
+import { useCreateQuestion, useQuestion, useUpdateQuestion, useMe } from "@/hooks/use-queries"
 import { toast } from "sonner"
 
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
@@ -20,9 +20,17 @@ export function CreateQuestion() {
   const [searchParams, setSearchParams] = useSearchParams()
   const typeParam = searchParams.get("type")
 
+  const { data: user } = useMe()
   const createQuestion = useCreateQuestion()
   const updateQuestion = useUpdateQuestion()
   const { data: existingQuestion, isLoading: isLoadingQuestion } = useQuestion(id || "")
+
+  useEffect(() => {
+    if (existingQuestion && user && existingQuestion.userId !== user.id) {
+      toast.error("You are not allowed to edit this question")
+      navigate("/questions")
+    }
+  }, [existingQuestion, user, navigate])
 
   const [questionText, setQuestionText] = useState("")
   // const [description, setDescription] = useState("")

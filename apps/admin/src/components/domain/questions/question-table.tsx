@@ -5,6 +5,7 @@ export interface Question {
   type: 'mcq' | 'dsa' | 'sandbox'
   description: string
   points: number
+  userId?: string
 }
 
 export const MOCK_QUESTIONS: Question[] = [
@@ -49,7 +50,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Edit2 } from "lucide-react"
+import { Edit2, Trash2 } from "lucide-react"
 
 interface QuestionTableProps {
   questions: Question[]
@@ -57,6 +58,8 @@ interface QuestionTableProps {
   selectedIds?: string[]
   onSelectionChange?: (selectedIds: string[]) => void
   onEdit?: (id: string) => void
+  onDelete?: (id: string) => void
+  currentUserId?: string
 }
 
 export function QuestionTable({
@@ -64,7 +67,9 @@ export function QuestionTable({
   isSelectable = false,
   selectedIds = [],
   onSelectionChange,
-  onEdit
+  onEdit,
+  onDelete,
+  currentUserId
 }: QuestionTableProps) {
 
   const toggleSelection = (id: string) => {
@@ -129,18 +134,32 @@ export function QuestionTable({
                 <TableCell className="font-mono text-muted-foreground">{question.points}</TableCell>
                 {!isSelectable && (
                   <TableCell className="text-right space-x-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 cursor-pointer"
-                      onClick={() => onEdit?.(question.id)}
-                    >
-                      <Edit2 className="h-4 w-4 text-muted-foreground" />
-                    </Button>
-                    {/* View functionality could be same as edit or a modal */}
-                    {/* <Button variant="ghost" size="sm" className="h-8 w-8 p-0 cursor-pointer">
-                      <Eye className="h-4 w-4 text-muted-foreground" />
-                    </Button> */}
+                    {(!currentUserId || question.userId === currentUserId) ? (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 cursor-pointer"
+                          onClick={() => onEdit?.(question.id)}
+                        >
+                          <Edit2 className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 cursor-pointer hover:text-destructive"
+                          onClick={() => {
+                            if (window.confirm("Are you sure you want to delete this question?")) {
+                              onDelete?.(question.id)
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </>
+                    ) : (
+                      <Badge variant="secondary" className="text-[10px] opacity-70">Read Only</Badge>
+                    )}
                   </TableCell>
                 )}
               </TableRow>

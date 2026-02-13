@@ -8,17 +8,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Plus, Edit2, Trophy, Eye, Users } from "lucide-react"
+import { Plus, Edit2, Trophy, Eye, Users, Trash2 } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { Badge } from "@/components/ui/badge"
-import { useContests, type Contest } from "@/hooks/use-queries"
+import { useContests, type Contest, useMe, useDeleteContest } from "@/hooks/use-queries"
+import { toast } from "sonner"
 
 export function ContestsList() {
   const navigate = useNavigate()
-  const { data: contests = [], isLoading } = useContests()
+  const { data: allContests = [], isLoading } = useContests()
+  const { data: user } = useMe()
 
   if (isLoading) return <div>Loading contests...</div>
-  // if (error) return <div>Error loading contests</div> // Handle error gracefully or use boundary
+
+  // Only show contests created by the current admin
+  const contests = allContests.filter(c => c.userId === user?.id)
 
   const now = new Date()
 
@@ -61,16 +65,16 @@ export function ContestsList() {
         </div>
 
         <TabsContent value="all" className="space-y-4">
-          <ContestTable contests={contests} showEdit />
+          <ContestTable contests={contests} showEdit currentUserId={user?.id} />
         </TabsContent>
         <TabsContent value="active" className="space-y-4">
-          <ContestTable contests={activeContests} showEdit showLeaderboard />
+          <ContestTable contests={activeContests} showEdit showLeaderboard currentUserId={user?.id} />
         </TabsContent>
         <TabsContent value="upcoming" className="space-y-4">
-          <ContestTable contests={upcomingContests} showEdit />
+          <ContestTable contests={upcomingContests} showEdit currentUserId={user?.id} />
         </TabsContent>
         <TabsContent value="past" className="space-y-4">
-          <ContestTable contests={pastContests} showLeaderboard />
+          <ContestTable contests={pastContests} showLeaderboard currentUserId={user?.id} />
         </TabsContent>
       </Tabs>
     </div>
@@ -80,13 +84,26 @@ export function ContestsList() {
 function ContestTable({
   contests,
   showEdit = false,
-  showLeaderboard = false
+  showLeaderboard = false,
+  currentUserId
 }: {
   contests: Contest[],
   showEdit?: boolean,
-  showLeaderboard?: boolean
+  showLeaderboard?: boolean,
+  currentUserId?: string
 }) {
   const navigate = useNavigate()
+  const deleteContest = useDeleteContest()
+
+  const handleDelete = (id: string) => {
+    if (window.confirm("Are you sure you want to delete this contest? This will also remove all participant scores and submissions.")) {
+      deleteContest.mutate(id, {
+        onSuccess: () => toast.success("Contest deleted"),
+        onError: (err) => toast.error("Failed to delete: " + err.message)
+      })
+    }
+  }
+
   return (
     <div className="rounded-md border border-border/50 bg-card">
       <Table>
@@ -122,15 +139,25 @@ function ContestTable({
                   <StatusBadge contest={contest} />
                 </TableCell>
                 <TableCell className="text-right space-x-2">
-                  {showEdit && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 cursor-pointer"
-                      onClick={() => contest.id && navigate(`/contests/edit/${contest.id}`)}
-                    >
-                      <Edit2 className="h-4 w-4 text-muted-foreground" />
-                    </Button>
+                  {showEdit && contest.userId === currentUserId && (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 cursor-pointer"
+                        onClick={() => contest.id && navigate(`/contests/edit/${contest.id}`)}
+                      >
+                        <Edit2 className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 cursor-pointer hover:text-destructive"
+                        onClick={() => contest.id && handleDelete(contest.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </>
                   )}
                   {showLeaderboard && (
                     <Button

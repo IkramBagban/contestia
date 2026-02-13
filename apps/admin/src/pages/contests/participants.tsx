@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button"
 import { useNavigate, useParams } from "react-router-dom"
+import { useEffect } from "react"
 import { ArrowLeft, Users, BadgeCheck } from "lucide-react"
-import { useContestParticipants } from "@/hooks/use-queries"
+import { useContestParticipants, useContest, useMe } from "@/hooks/use-queries"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,7 +10,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 export function ParticipantsPage() {
     const navigate = useNavigate()
     const { id } = useParams<{ id: string }>()
+    const { data: user } = useMe()
+    const { data: contest } = useContest(id || "")
     const { data: participants = [], isLoading } = useContestParticipants(id || "")
+
+    useEffect(() => {
+        if (contest && user && contest.userId !== user.id) {
+            navigate('/contests');
+        }
+    }, [contest, user, navigate]);
+
+    if (isLoading) return <div className="p-8">Loading...</div>;
+    if (user && contest && contest.userId !== user.id) return null;
 
     return (
         <div className="space-y-6">

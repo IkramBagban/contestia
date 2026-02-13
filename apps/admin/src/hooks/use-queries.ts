@@ -36,6 +36,7 @@ export interface Contest {
   startDate: string;
   startTime: string;
   endTime: string;
+  userId?: string;
   totalPoints?: number;
 }
 
@@ -68,6 +69,7 @@ export interface Question {
   text: string;
   type: 'MCQ' | 'DSA';
   points: number;
+  userId: string;
   funcName?: string;
   options?: Option[];
   testCases?: TestCase[];
@@ -187,6 +189,19 @@ export function useUpdateContest() {
   });
 }
 
+export function useDeleteContest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data } = await api.delete(`/contests/${id}`);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contests'] });
+    },
+  });
+}
+
 export function useContestParticipants(id: string) {
   return useQuery({
     queryKey: ['contest-participants', id],
@@ -261,6 +276,19 @@ export function useUpdateQuestion() {
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['questions'] });
       queryClient.invalidateQueries({ queryKey: ['questions', id] });
+    },
+  });
+}
+
+export function useDeleteQuestion() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data } = await api.delete(`/questions/${id}`);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['questions'] });
     },
   });
 }

@@ -76,7 +76,8 @@ export function CreateContest() {
     title: q.text?.substring(0, 50) || "Untitled",
     type: q.type.toLowerCase() as any,
     description: q.text,
-    points: q.points
+    points: q.points,
+    userId: q.userId
   }))
 
   const handleSave = () => {

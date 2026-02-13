@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useContest } from "@/hooks/use-queries";
+import { useEffect } from "react";
+import { useContest, useMe } from "@/hooks/use-queries";
 import { RealtimeLeaderboard } from "@/components/domain/leaderboard/realtime-leaderboard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,10 +10,19 @@ import { ArrowLeft, Calendar, Clock, Trophy } from "lucide-react";
 export function ContestDetail() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const { data: user } = useMe();
     const { data: contest, isLoading, error } = useContest(id || "");
+
+    useEffect(() => {
+        if (contest && user && contest.userId !== user.id) {
+            navigate('/contests');
+        }
+    }, [contest, user, navigate]);
 
     if (isLoading) return <div className="p-8">Loading contest details...</div>;
     if (error || !contest) return <div className="p-8 text-destructive">Error loading contest.</div>;
+
+    if (user && contest.userId !== user.id) return null;
 
     // Determine Status
     const now = new Date();

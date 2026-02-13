@@ -3,14 +3,17 @@ import { Plus, Loader2 } from "lucide-react"
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { QuestionTable, type Question as UIQuestion } from "@/components/domain/questions/question-table"
-import { useQuestions } from "@/hooks/use-queries"
+import { useQuestions, useMe, useDeleteQuestion } from "@/hooks/use-queries"
 import { Pagination } from "@/components/ui/pagination"
+import { toast } from "sonner"
 
 export function QuestionsList() {
   const navigate = useNavigate()
   const [page, setPage] = useState(1)
   const limit = 20
 
+  const { data: user } = useMe()
+  const deleteQuestion = useDeleteQuestion()
   const {
     data: questionsResponse,
     isLoading,
@@ -19,13 +22,25 @@ export function QuestionsList() {
   const questions = questionsResponse?.data || []
   const meta = questionsResponse?.meta
 
+  const handleDelete = (id: string) => {
+    deleteQuestion.mutate(id, {
+      onSuccess: () => {
+        toast.success("Question deleted successfully")
+      },
+      onError: (err: any) => {
+        toast.error(err.response?.data?.message || "Failed to delete question")
+      }
+    })
+  }
+
   // Map API questions to UI questions
   const uiQuestions: UIQuestion[] = questions.map((q) => ({
     id: q.id,
     title: q.text?.substring(0, 50) || "Untitled",
     type: q.type.toLowerCase() as any,
     description: q.text,
-    points: q.points
+    points: q.points,
+    userId: q.userId
   }))
 
   if (isLoading) return (
@@ -50,6 +65,8 @@ export function QuestionsList() {
       <QuestionTable
         questions={uiQuestions}
         onEdit={(id) => navigate(`/questions/edit/${id}`)}
+        onDelete={handleDelete}
+        currentUserId={user?.id}
       />
 
       {meta && meta.totalPages > 1 && (
