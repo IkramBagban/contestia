@@ -75,7 +75,7 @@ export function ContestDetail() {
                                     <div className="flex flex-col">
                                         <span className="text-xs text-muted-foreground">Time</span>
                                         <span className="font-medium text-sm">
-                                            {contest.startTime} - {contest.endTime}
+                                            {new Date(contest.startDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(contest.endDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </span>
                                     </div>
                                 </div>

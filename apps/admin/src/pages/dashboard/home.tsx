@@ -13,7 +13,7 @@ export function DashboardHome() {
   const now = new Date()
   const activeContestsCount = contests.filter(c => {
     const start = new Date(c.startDate)
-    const end = new Date(c.endTime)
+    const end = new Date(c.endDate)
     return start <= now && end >= now
   }).length
 
