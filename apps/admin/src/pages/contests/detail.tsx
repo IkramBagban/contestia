@@ -27,9 +27,7 @@ export function ContestDetail() {
     // Determine Status
     const now = new Date();
     const startDate = new Date(contest.startDate);
-    const [endH, endM] = contest.endTime.split(':').map(Number);
-    const endDate = new Date(startDate);
-    endDate.setHours(endH, endM, 0, 0);
+    const endDate = new Date(contest.endDate); 
 
     let status: "UPCOMING" | "LIVE" | "PAST" = "UPCOMING";
     if (now < startDate) status = "UPCOMING";

@@ -14,8 +14,7 @@ export const createContestSchema = z.object({
   title: z.string(),
   description: z.string(),
   startDate: z.coerce.date(),
-  startTime: z.string(),
-  endTime: z.string(),
+  endDate: z.coerce.date(),
   questionIds: z.array(z.string()),
 });
 

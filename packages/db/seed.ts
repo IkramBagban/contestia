@@ -45,7 +45,10 @@ async function main() {
     }
 
     const adminUser: any = users[0];
+    const secondAdmin: any = users[1];
     console.log(`✅ ${users.length} users ready`);
+    console.log(`🔑 Admin 1: ${adminUser.email}`);
+    console.log(`🔑 Admin 2: ${secondAdmin.email}`);
 
     // ---------------- MCQ QUESTIONS ----------------
     const mcqData = [
@@ -232,20 +235,24 @@ async function main() {
     ];
 
     const mcqQuestions = [];
-    for (const data of mcqData) {
+    for (let i = 0; i < mcqData.length; i++) {
+        const data = mcqData[i];
+        // Distribute questions between two admins
+        const ownerId = i % 2 === 0 ? adminUser.id : secondAdmin.id;
+
         const q = await prismaClient.question.create({
             data: {
                 text: data.text,
                 type: "MCQ",
                 points: 10,
-                userId: adminUser.id,
+                userId: ownerId,
                 funcName: "",
                 options: { create: data.options }
             }
         });
         mcqQuestions.push(q);
     }
-    console.log(`✅ ${mcqQuestions.length} MCQ questions ready`);
+    console.log(`✅ ${mcqQuestions.length} MCQ questions ready (Split between Admin 1 & 2)`);
 
     // ---------------- DSA QUESTIONS ----------------
     const dsaData = [
@@ -512,13 +519,16 @@ There are hidden test cases to validate edge cases and larger inputs.`,
     ];
 
     const dsaQuestions = [];
-    for (const data of dsaData) {
+    for (let i = 0; i < dsaData.length; i++) {
+        const data = dsaData[i];
+        const ownerId = i % 2 === 0 ? adminUser.id : secondAdmin.id;
+
         const q = await prismaClient.question.create({
             data: {
                 text: data.text,
                 type: "DSA",
                 points: data.points,
-                userId: adminUser.id,
+                userId: ownerId,
                 funcName: data.funcName,
                 testCases: {
                     create: data.cases.map(tc => ({
@@ -531,11 +541,15 @@ There are hidden test cases to validate edge cases and larger inputs.`,
         });
         dsaQuestions.push(q);
     }
-    console.log(`✅ ${dsaQuestions.length} DSA questions ready`);
+    console.log(`✅ ${dsaQuestions.length} DSA questions ready (Split between Admin 1 & 2)`);
 
     // ---------------- CONTESTS ----------------
     const start = new Date();
     const end = new Date(start.getTime() + 2 * 60 * 60 * 1000);
+
+    // Filter questions owned by adminUser for its specific contests, 
+    // though the requirement says admins can use EACH OTHER'S questions.
+    // So we'll mix them but keep ownership distinct.
 
     await prismaClient.contest.upsert({
         where: { id: "contest-dsa-master" },
@@ -544,8 +558,7 @@ There are hidden test cases to validate edge cases and larger inputs.`,
             title: "DSA Master Contest",
             description: "6 DSA problems with hidden testcases.",
             startDate: start,
-            startTime: start.toTimeString().slice(0, 5),
-            endTime: end.toTimeString().slice(0, 5),
+            endDate: end,
             userId: adminUser.id,
             questions: {
                 create: dsaQuestions.map(q => ({
@@ -557,8 +570,7 @@ There are hidden test cases to validate edge cases and larger inputs.`,
             title: "DSA Master Contest",
             description: "6 DSA problems with hidden testcases.",
             startDate: start,
-            startTime: start.toTimeString().slice(0, 5),
-            endTime: end.toTimeString().slice(0, 5),
+            endDate: end,
             userId: adminUser.id,
             questions: {
                 deleteMany: {},
@@ -576,9 +588,8 @@ There are hidden test cases to validate edge cases and larger inputs.`,
             title: "MCQ Basic Contest",
             description: "5 MCQ questions on programming basics.",
             startDate: start,
-            startTime: start.toTimeString().slice(0, 5),
-            endTime: end.toTimeString().slice(0, 5),
-            userId: adminUser.id,
+            endDate: end,
+            userId: secondAdmin.id, // Second admin owns this
             questions: {
                 create: mcqQuestions.map(q => ({
                     questionId: q.id
@@ -589,9 +600,8 @@ There are hidden test cases to validate edge cases and larger inputs.`,
             title: "MCQ Basic Contest",
             description: "5 MCQ questions on programming basics.",
             startDate: start,
-            startTime: start.toTimeString().slice(0, 5),
-            endTime: end.toTimeString().slice(0, 5),
-            userId: adminUser.id,
+            endDate: end,
+            userId: secondAdmin.id,
             questions: {
                 deleteMany: {},
                 create: mcqQuestions.map(q => ({
@@ -609,8 +619,7 @@ There are hidden test cases to validate edge cases and larger inputs.`,
             title: "Hybrid Challenge Contest",
             description: "3 MCQ and 3 DSA questions.",
             startDate: start,
-            startTime: start.toTimeString().slice(0, 5),
-            endTime: end.toTimeString().slice(0, 5),
+            endDate: end,
             userId: adminUser.id,
             questions: {
                 create: hybridQuestions.map(q => ({
@@ -622,8 +631,7 @@ There are hidden test cases to validate edge cases and larger inputs.`,
             title: "Hybrid Challenge Contest",
             description: "3 MCQ and 3 DSA questions.",
             startDate: start,
-            startTime: start.toTimeString().slice(0, 5),
-            endTime: end.toTimeString().slice(0, 5),
+            endDate: end,
             userId: adminUser.id,
             questions: {
                 deleteMany: {},
@@ -634,7 +642,7 @@ There are hidden test cases to validate edge cases and larger inputs.`,
         }
     });
 
-    console.log("✅ 3 contests ready");
+    console.log("✅ 3 contests ready (Admin 1 owns 'DSA Master' & 'Hybrid', Admin 2 owns 'MCQ Basic')");
     console.log("✅ Seed Completed Successfully");
 }
 

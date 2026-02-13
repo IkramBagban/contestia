@@ -27,17 +27,18 @@ export function ContestsList() {
   const now = new Date()
 
   const activeContests = contests.filter(c => {
-    const { start, end } = getContestDates(c)
+    const start = new Date(c.startDate)
+    const end = new Date(c.endDate)
     return start <= now && end >= now
   })
 
   const upcomingContests = contests.filter(c => {
-    const { start } = getContestDates(c)
+    const start = new Date(c.startDate)
     return start > now
   })
 
   const pastContests = contests.filter(c => {
-    const { end } = getContestDates(c)
+    const end = new Date(c.endDate)
     return end < now
   })
 
@@ -129,7 +130,7 @@ function ContestTable({
               <TableRow key={contest.id || i} className="border-border/50 hover:bg-muted/50">
                 <TableCell className="font-medium font-sans">{contest.title}</TableCell>
                 <TableCell className="font-mono text-xs text-muted-foreground">
-                  {new Date(contest.startDate).toLocaleDateString()} {contest.startTime}
+                  {new Date(contest.startDate).toLocaleString()}
                 </TableCell>
                 <TableCell className="font-mono">{contest.totalPoints || 0}</TableCell>
                 <TableCell className="font-mono text-muted-foreground">
@@ -200,7 +201,8 @@ function ContestTable({
 
 function StatusBadge({ contest }: { contest: Contest }) {
   const now = new Date()
-  const { start, end } = getContestDates(contest)
+  const start = new Date(contest.startDate)
+  const end = new Date(contest.endDate)
 
   let status = 'upcoming'
   if (now > end) status = 'past'
@@ -228,27 +230,4 @@ function StatusBadge({ contest }: { contest: Contest }) {
       {label}
     </Badge>
   )
-}
-
-function getContestDates(contest: Contest) {
-  const date = new Date(contest.startDate);
-
-  const start = new Date(date);
-  if (contest.startTime) {
-    const [sH, sM] = contest.startTime.split(':').map(Number);
-    if (!isNaN(sH)) start.setHours(sH, sM || 0, 0, 0);
-  } else {
-    start.setHours(0, 0, 0, 0);
-  }
-
-  const end = new Date(date);
-  if (contest.endTime) {
-    const [eH, eM] = contest.endTime.split(':').map(Number);
-    if (!isNaN(eH)) end.setHours(eH, eM || 0, 0, 0);
-    else end.setHours(23, 59, 59, 999); // Default to end of day?
-  } else {
-    end.setHours(23, 59, 59, 999);
-  }
-
-  return { start, end };
 }

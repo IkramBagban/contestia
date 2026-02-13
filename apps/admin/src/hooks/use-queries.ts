@@ -34,8 +34,7 @@ export interface Contest {
   title: string;
   description: string;
   startDate: string;
-  startTime: string;
-  endTime: string;
+  endDate: string;
   userId?: string;
   totalPoints?: number;
 }
@@ -43,9 +42,8 @@ export interface Contest {
 interface CreateContestPayload {
   title: string;
   description: string;
-  startDate: Date; // or string
-  startTime: string;
-  endTime: string;
+  startDate: Date | string;
+  endDate: Date | string;
   questionIds: string[];
 }
 

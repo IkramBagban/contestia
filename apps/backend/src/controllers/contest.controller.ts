@@ -25,8 +25,7 @@ export const getContests = async (
         title: true,
         description: true,
         startDate: true,
-        startTime: true,
-        endTime: true,
+        endDate: true,
         userId: true,
         questions: {
           select: {
@@ -311,45 +310,13 @@ export const startContest = async (
     }
 
     // Check if contest has ended
-    const getContestDates = (c: any) => {
-      const start = new Date(c.startDate);
-      let realStartDate = new Date(start);
-
-      if (c.startTime && c.startTime.includes(':') && c.startTime.length <= 5) {
-        const [startHours, startMinutes] = c.startTime.split(":").map(Number);
-        if (!isNaN(startHours) && !isNaN(startMinutes)) {
-          realStartDate.setHours(startHours, startMinutes, 0, 0);
-        }
-      }
-
-      let realEndDate = new Date(realStartDate);
-      if (c.endTime) {
-        if (c.endTime.includes('T') || c.endTime.length > 5) {
-          const possibleEndDate = new Date(c.endTime);
-          if (!isNaN(possibleEndDate.getTime())) {
-            realEndDate = possibleEndDate;
-          }
-        } else if (c.endTime.includes(':')) {
-          const [endHours, endMinutes] = c.endTime.split(":").map(Number);
-          if (!isNaN(endHours) && !isNaN(endMinutes)) {
-            realEndDate.setHours(endHours, endMinutes, 0, 0);
-            if (realEndDate < realStartDate) {
-              realEndDate.setDate(realEndDate.getDate() + 1);
-            }
-          }
-        }
-      }
-      return { start: realStartDate, end: realEndDate };
-    };
-
-    const { start: realStart, end: realEnd } = getContestDates(contest);
     const now = new Date();
 
-    if (now > realEnd) {
+    if (now > contest.endDate) {
       throw Object.assign(new Error("Contest has ended"), { status: 400 });
     }
 
-    if (now < realStart) {
+    if (now < contest.startDate) {
       throw Object.assign(new Error("Contest has not started yet"), { status: 400 });
     }
 

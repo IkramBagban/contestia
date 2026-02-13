@@ -128,38 +128,7 @@ export function ContestAttemptPage() {
     if (!contestData) return;
 
     try {
-      const getContestEndDate = (c: any) => {
-        const start = new Date(c.startDate);
-        let realStartDate = new Date(start);
-
-        if (c.startTime && c.startTime.includes(':') && c.startTime.length <= 5) {
-          const [startHours, startMinutes] = c.startTime.split(":").map(Number);
-          if (!isNaN(startHours) && !isNaN(startMinutes)) {
-            realStartDate.setHours(startHours, startMinutes, 0, 0);
-          }
-        }
-
-        if (c.endTime) {
-          if (c.endTime.includes('T') || c.endTime.length > 5) {
-            const possibleEndDate = new Date(c.endTime);
-            if (!isNaN(possibleEndDate.getTime())) return possibleEndDate;
-          } else if (c.endTime.includes(':')) {
-            const [endHours, endMinutes] = c.endTime.split(":").map(Number);
-            if (!isNaN(endHours) && !isNaN(endMinutes)) {
-              const endDate = new Date(realStartDate);
-              endDate.setHours(endHours, endMinutes, 0, 0);
-              if (endDate < realStartDate) endDate.setDate(endDate.getDate() + 1);
-              return endDate;
-            }
-          }
-        }
-        // Fallback
-        const fallback = new Date(realStartDate);
-        fallback.setHours(23, 59, 59, 999);
-        return fallback;
-      };
-
-      const endDate = getContestEndDate(contestData);
+      const endDate = new Date(contestData.endDate);
 
       const calculateTimeLeft = () => {
         const now = new Date();
@@ -383,28 +352,8 @@ export function ContestAttemptPage() {
 
   // Calculate status for Leaderboard
   const getContestStatus = (c: any) => {
-    const start = new Date(c.startDate);
-    let realStart = new Date(start);
-    if (c.startTime && c.startTime.includes(':') && c.startTime.length <= 5) {
-      const [h, m] = c.startTime.split(":").map(Number);
-      if (!isNaN(h) && !isNaN(m)) realStart.setHours(h, m, 0, 0);
-    }
-
-    let realEnd = new Date(realStart);
-    if (c.endTime) {
-      if (c.endTime.includes('T') || c.endTime.length > 5) {
-        const d = new Date(c.endTime);
-        if (!isNaN(d.getTime())) realEnd = d;
-      } else if (c.endTime.includes(':')) {
-        const [h, m] = c.endTime.split(":").map(Number);
-        if (!isNaN(h) && !isNaN(m)) {
-          realEnd.setHours(h, m, 0, 0);
-          if (realEnd < realStart) realEnd.setDate(realEnd.getDate() + 1);
-        }
-      }
-    } else {
-      realEnd.setHours(23, 59, 59, 999);
-    }
+    const realStart = new Date(c.startDate);
+    const realEnd = new Date(c.endDate);
 
     const now = new Date();
     if (now < realStart) return "UPCOMING";

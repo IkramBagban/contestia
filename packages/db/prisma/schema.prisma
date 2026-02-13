@@ -34,8 +34,7 @@ model Contest {
   title       String
   description String
   startDate   DateTime
-  startTime   String
-  endTime     String
+  endDate     DateTime
   userId      String
 
   createdAt DateTime @default(now())

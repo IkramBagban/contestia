@@ -49,19 +49,9 @@ export function CreateContest() {
 
       setStartDateTime(formatDate(startDate))
 
-      // endTime is string in schema/create, but let's see how it comes back. 
-      // If backend stores it as string, we can use it directly if it matches format or parse it.
-      // Schema says endTime is string. But in reality it might be ISO date string.
-      // Let's assume it attempts to be a date string.
-      try {
-        const endDate = new Date(existingContest.endTime)
-        if (!isNaN(endDate.getTime())) {
+      if (existingContest.endDate) {
+          const endDate = new Date(existingContest.endDate)
           setEndDateTime(formatDate(endDate))
-        } else {
-          setEndDateTime(existingContest.endTime)
-        }
-      } catch (e) {
-        setEndDateTime(existingContest.endTime)
       }
 
       if (existingContest.questions) {
@@ -86,17 +76,11 @@ export function CreateContest() {
       return
     }
 
-    const start = new Date(startDateTime)
-
-    // Extract time string HH:mm
-    const startTimeStr = start.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-
     const payload = {
       title,
       description,
-      startDate: start,
-      startTime: startTimeStr,
-      endTime: endDateTime,
+      startDate: new Date(startDateTime),
+      endDate: new Date(endDateTime),
       questionIds: selectedQuestions
     }
 

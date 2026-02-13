@@ -54,68 +54,19 @@ export function DashboardPage() {
     const contests = contestsRaw || [];
     const now = new Date();
 
-    // Helper to parse Dates properly
-    const getContestDates = (c: any) => {
-        // startDate from Prisma is usually a full ISO string
-        const start = new Date(c.startDate);
-
-        let realStartDate = new Date(start);
-        // Try to use startTime if available and valid HH:mm
-        if (c.startTime && c.startTime.includes(':') && c.startTime.length <= 5) {
-            const [startHours, startMinutes] = c.startTime.split(":").map(Number);
-            if (!isNaN(startHours) && !isNaN(startMinutes)) {
-                const dayStart = new Date(start);
-                dayStart.setHours(startHours, startMinutes, 0, 0);
-                realStartDate = dayStart;
-            }
-        }
-
-        let endDate = new Date(realStartDate);
-        // Try to parse endTime. It might be a full date string or just HH:mm
-        if (c.endTime) {
-            if (c.endTime.includes('T') || c.endTime.length > 5) {
-                // Likely a full ISO string (e.g. from datetime-local input)
-                const possibleEndDate = new Date(c.endTime);
-                if (!isNaN(possibleEndDate.getTime())) {
-                    endDate = possibleEndDate;
-                }
-            } else if (c.endTime.includes(':')) {
-                // HH:mm format
-                const [endHours, endMinutes] = c.endTime.split(":").map(Number);
-                if (!isNaN(endHours) && !isNaN(endMinutes)) {
-                    // Assume end time is on the SAME DAY as start time
-                    // (This logic matches original intent if endTime is just time)
-                    endDate = new Date(realStartDate);
-                    endDate.setHours(endHours, endMinutes, 0, 0);
-
-                    // Handle crossover (ends next day) if end time < start time?
-                    // Simple logic for now: if end < start, maybe add a day, but usually contests > 0 duration
-                    if (endDate < realStartDate) {
-                        endDate.setDate(endDate.getDate() + 1);
-                    }
-                }
-            }
-        } else {
-            // Fallback if no endTime, assume 1 hour or end of day?
-            // Let's set it to end of day to be safe or 1 hour duration
-            endDate.setHours(23, 59, 59, 999);
-        }
-
-        return { start: realStartDate, end: endDate };
-    }
-
     const liveContests = contests.filter((c: any) => {
-        const { start, end } = getContestDates(c);
+        const start = new Date(c.startDate);
+        const end = new Date(c.endDate);
         return isWithinInterval(now, { start, end });
     });
 
     const upcomingContests = contests.filter((c: any) => {
-        const { start } = getContestDates(c);
+        const start = new Date(c.startDate);
         return isFuture(start);
     });
 
     const pastContests = contests.filter((c: any) => {
-        const { end } = getContestDates(c);
+        const end = new Date(c.endDate);
         return isPast(end);
     });
 
@@ -243,8 +194,7 @@ export function DashboardPage() {
                                             <div className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-foreground/10 bg-primary/5 text-primary">
                                                 <Clock className="h-3 w-3" />
                                                 <span>
-                                                    {format(new Date(contest.startDate), "HH:mm")} -
-                                                    {contest.endTime && contest.endTime.includes('T') ? format(new Date(contest.endTime), "HH:mm") : contest.endTime}
+                                                    {format(new Date(contest.startDate), "HH:mm")} - {format(new Date(contest.endDate), "HH:mm")}
                                                 </span>
                                             </div>
                                         </div>

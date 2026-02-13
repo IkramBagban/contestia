@@ -62,38 +62,8 @@ export function ContestPage() {
     }
 
     // Determine Contest Status
-    const getContestDates = (c: any) => {
-        const start = new Date(c.startDate);
-        let realStartDate = new Date(start);
-
-        if (c.startTime && c.startTime.includes(':') && c.startTime.length <= 5) {
-            const [startHours, startMinutes] = c.startTime.split(":").map(Number);
-            if (!isNaN(startHours) && !isNaN(startMinutes)) {
-                realStartDate.setHours(startHours, startMinutes, 0, 0);
-            }
-        }
-
-        let endDate = new Date(realStartDate);
-        if (c.endTime) {
-            if (c.endTime.includes('T') || c.endTime.length > 5) {
-                const possibleEndDate = new Date(c.endTime);
-                if (!isNaN(possibleEndDate.getTime())) {
-                    endDate = possibleEndDate;
-                }
-            } else if (c.endTime.includes(':')) {
-                const [endHours, endMinutes] = c.endTime.split(":").map(Number);
-                if (!isNaN(endHours) && !isNaN(endMinutes)) {
-                    endDate.setHours(endHours, endMinutes, 0, 0);
-                    if (endDate < realStartDate) {
-                        endDate.setDate(endDate.getDate() + 1);
-                    }
-                }
-            }
-        }
-        return { start: realStartDate, end: endDate };
-    };
-
-    const { start: realStart, end: realEnd } = getContestDates(contestData);
+    const realStart = new Date(contestData.startDate);
+    const realEnd = new Date(contestData.endDate);
     const now = new Date();
 
     let status: "UPCOMING" | "LIVE" | "PAST" = "UPCOMING";
@@ -167,7 +137,7 @@ export function ContestPage() {
                                 <div className="flex items-center gap-3 rounded-xl border border-foreground/20 bg-muted/30 px-4 py-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                                     <Clock className="w-4 h-4 text-primary" />
                                     <span className="text-xs font-bold uppercase tracking-tight">
-                                        {format(realStart, "HH:mm")} - {contestData.endTime && contestData.endTime.includes('T') ? format(new Date(contestData.endTime), "HH:mm") : contestData.endTime}
+                                        {format(realStart, "HH:mm")} - {format(realEnd, "HH:mm")}
                                     </span>
                                 </div>
                                 <div className="flex items-center gap-3 rounded-xl border border-foreground/20 bg-muted/30 px-4 py-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
