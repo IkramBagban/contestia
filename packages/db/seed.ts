@@ -544,8 +544,22 @@ There are hidden test cases to validate edge cases and larger inputs.`,
     console.log(`✅ ${dsaQuestions.length} DSA questions ready (Split between Admin 1 & 2)`);
 
     // ---------------- CONTESTS ----------------
-    const start = new Date();
-    const end = new Date(start.getTime() + 2 * 60 * 60 * 1000);
+    const now = new Date();
+    
+    // 1. LIVE Contest (Started 1 hour ago, ends in 2 hours)
+    const startLive = new Date(now.getTime() - 1 * 60 * 60 * 1000);
+    const endLive = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+
+    // 2. UPCOMING Contest (Starts tomorrow, ends tomorrow + 2 hours)
+    const startUpcoming = new Date(now);
+    startUpcoming.setDate(startUpcoming.getDate() + 1);
+    const endUpcoming = new Date(startUpcoming.getTime() + 2 * 60 * 60 * 1000);
+
+    // 3. PAST Contest (Started 2 days ago, ended 1 day ago)
+    const startPast = new Date(now);
+    startPast.setDate(startPast.getDate() - 2);
+    const endPast = new Date(startPast);
+    endPast.setDate(endPast.getDate() + 1);
 
     // Filter questions owned by adminUser for its specific contests, 
     // though the requirement says admins can use EACH OTHER'S questions.
@@ -555,10 +569,10 @@ There are hidden test cases to validate edge cases and larger inputs.`,
         where: { id: "contest-dsa-master" },
         create: {
             id: "contest-dsa-master",
-            title: "DSA Master Contest",
-            description: "6 DSA problems with hidden testcases.",
-            startDate: start,
-            endDate: end,
+            title: "DSA Master Contest (LIVE)",
+            description: "6 DSA problems with hidden testcases. This contest is currently LIVE.",
+            startDate: startLive,
+            endDate: endLive,
             userId: adminUser.id,
             questions: {
                 create: dsaQuestions.map(q => ({
@@ -567,10 +581,10 @@ There are hidden test cases to validate edge cases and larger inputs.`,
             }
         },
         update: {
-            title: "DSA Master Contest",
-            description: "6 DSA problems with hidden testcases.",
-            startDate: start,
-            endDate: end,
+            title: "DSA Master Contest (LIVE)",
+            description: "6 DSA problems with hidden testcases. This contest is currently LIVE.",
+            startDate: startLive,
+            endDate: endLive,
             userId: adminUser.id,
             questions: {
                 deleteMany: {},
@@ -585,10 +599,10 @@ There are hidden test cases to validate edge cases and larger inputs.`,
         where: { id: "contest-mcq-basic" },
         create: {
             id: "contest-mcq-basic",
-            title: "MCQ Basic Contest",
-            description: "5 MCQ questions on programming basics.",
-            startDate: start,
-            endDate: end,
+            title: "MCQ Basic Contest (UPCOMING)",
+            description: "5 MCQ questions on programming basics. Starts tomorrow.",
+            startDate: startUpcoming,
+            endDate: endUpcoming,
             userId: secondAdmin.id, // Second admin owns this
             questions: {
                 create: mcqQuestions.map(q => ({
@@ -597,10 +611,10 @@ There are hidden test cases to validate edge cases and larger inputs.`,
             }
         },
         update: {
-            title: "MCQ Basic Contest",
-            description: "5 MCQ questions on programming basics.",
-            startDate: start,
-            endDate: end,
+            title: "MCQ Basic Contest (UPCOMING)",
+            description: "5 MCQ questions on programming basics. Starts tomorrow.",
+            startDate: startUpcoming,
+            endDate: endUpcoming,
             userId: secondAdmin.id,
             questions: {
                 deleteMany: {},
@@ -616,10 +630,10 @@ There are hidden test cases to validate edge cases and larger inputs.`,
         where: { id: "contest-hybrid-challenge" },
         create: {
             id: "contest-hybrid-challenge",
-            title: "Hybrid Challenge Contest",
-            description: "3 MCQ and 3 DSA questions.",
-            startDate: start,
-            endDate: end,
+            title: "Hybrid Challenge Contest (PAST)",
+            description: "3 MCQ and 3 DSA questions. This contest has ended.",
+            startDate: startPast,
+            endDate: endPast,
             userId: adminUser.id,
             questions: {
                 create: hybridQuestions.map(q => ({
@@ -628,10 +642,10 @@ There are hidden test cases to validate edge cases and larger inputs.`,
             }
         },
         update: {
-            title: "Hybrid Challenge Contest",
-            description: "3 MCQ and 3 DSA questions.",
-            startDate: start,
-            endDate: end,
+            title: "Hybrid Challenge Contest (PAST)",
+            description: "3 MCQ and 3 DSA questions. This contest has ended.",
+            startDate: startPast,
+            endDate: endPast,
             userId: adminUser.id,
             questions: {
                 deleteMany: {},
