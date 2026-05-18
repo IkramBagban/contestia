@@ -33,12 +33,18 @@ jobs:
         push: true
         tags: ${{ secrets.DOCKER_USERNAME }}/contestia-backend:${{ github.sha }}
 
+    - name: Prepare SSH key
+      run: |
+        mkdir -p ~/.ssh
+        printf "%s" "${{ secrets.SSH_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
+        chmod 600 ~/.ssh/deploy_key
+
     - name: SSH Into machine and run backend
       uses: appleboy/ssh-action@v1
       with:
         host: ${{ secrets.HOST }}
         username: ${{ secrets.USERNAME }}
-        key: ${{ secrets.SSH_KEY }}
+        key_path: ~/.ssh/deploy_key
         script: |
           whoami
           docker rm -f contestia-backend || true
