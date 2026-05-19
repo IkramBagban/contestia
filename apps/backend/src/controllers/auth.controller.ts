@@ -6,6 +6,14 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import type { ExtendedRequest } from "../../utils/types";
 
+const cookieOptions = {
+  httpOnly: true,
+  secure: true,
+  sameSite: "none" as const,
+  path: "/",
+  maxAge: 1000 * 60 * 60 * 24 * 7,
+};
+
 export const signup = async (
   req: Request,
   res: Response,
@@ -107,7 +115,7 @@ export const login = async (
     };
     const token = jwt.sign(jwtPayload, process.env.JWT_SECRET ?? "secret");
 
-    res.cookie("token", token);
+    res.cookie("token", token, cookieOptions);
     res
       .status(200)
       .json({ success: true, message: "You are logged in successfully." });
@@ -140,7 +148,7 @@ export const logout = async (
 ) => {
   try {
     res
-      .cookie("token", undefined)
+      .cookie("token", "", { ...cookieOptions, maxAge: 0 })
       .status(200)
       .json({ success: true, message: "You are logged out successfully." });
   } catch (error) {

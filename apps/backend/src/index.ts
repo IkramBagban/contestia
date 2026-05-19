@@ -14,6 +14,15 @@ import { WebSocketServer } from "ws";
 import websocketHandler from "./services/ws";
 const PORT = process.env.PORT || 5000;
 const app = express();
+const normalizeOrigin = (value: string) => value.replace(/\/+$/, "");
+const configuredOrigins = (
+  process.env.ORIGIN_URLS?.split(",") || [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "https://contestia.ibmeet.xyz",
+    "https://admin.contestia.ibmeet.xyz",
+  ]
+).map((origin) => normalizeOrigin(origin.trim()));
 
 const server = createServer(app)
 
@@ -23,9 +32,14 @@ wss.on("connection", websocketHandler)
 app.use(express.json());
 app.use(
   cors({
-    origin: process.env.ORIGIN_URLS?.split(",") || ["http://localhost:5173", "http://localhost:5174", "https://contestia.ibmeet.xyz", "https://admin.contestia.ibmeet.xyz"],
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      const normalized = normalizeOrigin(origin);
+      if (configuredOrigins.includes(normalized)) return callback(null, true);
+      return callback(new Error("Not allowed by CORS"));
+    },
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
